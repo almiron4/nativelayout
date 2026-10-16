@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="img/nl.png" alt="nativelayout" width="140">
+<img src="img/nl.jpg" alt="nativelayout" width="140">
 
 <h1>nativelayout</h1>
 
