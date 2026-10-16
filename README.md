@@ -1,12 +1,23 @@
-# nativelayout
+<div align="center">
 
-**Create native interfaces from HTML, in any language.**
+<h1>nativelayout</h1>
 
-<a href="https://jitpack.io/#getnativelayout/nativelayout-android"><img src="https://jitpack.io/v/getnativelayout/nativelayout-android.svg" alt="JitPack"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+<p><strong>Create native interfaces from HTML, in any language.</strong></p>
 
+<a href="https://jitpack.io/#getnativelayout/nativelayout"><img src="https://jitpack.io/v/getnativelayout/nativelayout.svg" alt="JitPack"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+
+</div>
+
+<br>
+
+<p align="justify">
 A screen is written once, in a plain text file that looks like HTML. The same file works in any language: each language only supplies the Expander, the Engine and the native host. No WebView, no canvas: the file becomes real native views.
+</p>
 
+<p align="justify">
 The file describes the screen. The logic (state, taps) stays in your language, in a plain loop.
+</p>
 
 ## Why nativelayout
 
@@ -19,7 +30,9 @@ The file describes the screen. The logic (state, taps) stays in your language, i
 
 ## Implementations
 
-The `.nl` file is the same everywhere. Each language only needs an Expander, an Engine and a native host.
+<p align="justify">
+The <code>.nl</code> file is the same everywhere. Each language only needs an Expander, an Engine and a native host. Every implementation lives in its own folder, is published as a library, and has its own guide and examples. The Android folder also contains an editor app (<code>android/app</code>) with live preview, used to test screens on-device.
+</p>
 
 | Language | Target | Status | Folder |
 |---|---|---|---|
@@ -36,15 +49,15 @@ The `.nl` file is the same everywhere. Each language only needs an Expander, an 
 | Rust | desktop | planned | - |
 | Go | desktop | planned | - |
 
-Each implementation lives in its own folder and is published as a library. Usage guides and examples live in each folder. The Android folder also contains an editor app (`android/app`) with live preview, used to test screens on-device.
-
-Want to add a language? See [Contributing](#contributing).
+<p align="justify">
+Want to add a language? See <a href="#contributing">Contributing</a>.
+</p>
 
 ## Install (Android)
 
-Published through [JitPack](https://jitpack.io/#getnativelayout/nativelayout-android).
-
-Add the JitPack repository (`https://jitpack.io`) to your project:
+<p align="justify">
+Published through <a href="https://jitpack.io/#getnativelayout/nativelayout">JitPack</a>. First add the JitPack repository (<code>https://jitpack.io</code>) to your project:
+</p>
 
 ```kotlin
 // settings.gradle.kts
@@ -62,17 +75,23 @@ Then add the dependency:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout-android:nativelayout-android:v0.1.1")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2")
 }
 ```
 
-`nativelayout-android` already includes `nativelayout-core`. To use only the parser and Expander (pure JVM), depend on `nativelayout-core` instead. Minimum SDK: 21.
+<p align="justify">
+<code>nativelayout-android</code> already includes <code>nativelayout-core</code>. To use only the parser and Expander (pure JVM), depend on <code>nativelayout-core</code> instead. Minimum SDK: 21.
+</p>
 
-Quick start and examples: [`android/README.md`](android/README.md) and [`android/examples/`](android/examples/).
+<p align="justify">
+Quick start and examples: <a href="android/README.md"><code>android/README.md</code></a> and <a href="android/examples/"><code>android/examples/</code></a>.
+</p>
 
 ## API
 
-The same verbs exist in every language.
+<p align="justify">
+The same verbs exist in every language. Data passed to <code>render</code> is plain: text, number, bool, list and map.
+</p>
 
 | Verb | Does |
 |---|---|
@@ -89,9 +108,11 @@ The same verbs exist in every language.
 | `delete(key)` | removes a stored key |
 | `close()` | releases the host |
 
-Data passed to `render` is plain: text, number, bool, list and map.
-
 ## The file format
+
+<p align="justify">
+A screen is one <code>.nl</code> file: zero or more linked stylesheets, an optional <code>&lt;style&gt;</code>, and exactly one <code>&lt;body&gt;</code>, all wrapped in <code>&lt;nativelayout&gt;</code>.
+</p>
 
 ```
 <nativelayout>
@@ -101,7 +122,7 @@ Data passed to `render` is plain: text, number, bool, list and map.
 </nativelayout>
 ```
 
-**Tags**
+### Tags
 
 | Tag | Native component |
 |---|---|
@@ -113,14 +134,16 @@ Data passed to `render` is plain: text, number, bool, list and map.
 | `img` | image (`data:` URI or a name resolved by the host) |
 | `ul`, `li` | list with bullets |
 
-**Style**
+### Style
 
 - Selectors: `:root`, `body`, tag, `.class`, `#id`, and comma lists. Variables with `var(--name)`.
 - Properties: `color`, `background`, `font-size`, `font-weight`, `padding`, `margin`, `border-radius`, `border`, `display`, `flex-direction`, `flex`, `justify-content`, `align-items`, `gap`, `width`, `height`.
 - Units: `rem`, `px` (dp) and `0`. Percentages only in `width` and `height`.
 - Not supported in v1: descendant and child selectors, pseudo-classes, attribute selectors, `@media`, `<script>`.
 
-Values (`{name}`), control lines (`if`, `elif`, `else`, `for`, `end`), the cascade rules, error messages and complete examples are in [`SPEC.md`](SPEC.md).
+<p align="justify">
+Values (<code>{name}</code>), control lines (<code>if</code>, <code>elif</code>, <code>else</code>, <code>for</code>, <code>end</code>), the cascade rules, error messages and complete examples are in <a href="SPEC.md"><code>SPEC.md</code></a>.
+</p>
 
 ## How it works
 
@@ -143,7 +166,9 @@ SPEC.md      the file format, shared by every language
 
 ## Contributing
 
-Issues and pull requests are welcome. A new language implementation needs an Expander, an Engine and a native host that follow `SPEC.md`; the `.nl` files must work unchanged. Put it in its own folder, with its own README and examples.
+<p align="justify">
+Issues and pull requests are welcome. A new language implementation needs an Expander, an Engine and a native host that follow <code>SPEC.md</code>; the <code>.nl</code> files must work unchanged. Put it in its own folder, with its own README and examples.
+</p>
 
 ## License
 
