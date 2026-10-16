@@ -1,0 +1,4 @@
+jdk:
+  - openjdk21
+install:
+  - source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk install gradle 8.13 < /dev/null && cd android && gradle :core:publishToMavenLocal :android:publishToMavenLocal
