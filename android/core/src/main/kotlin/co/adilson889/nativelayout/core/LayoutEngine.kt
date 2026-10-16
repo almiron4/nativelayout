@@ -33,13 +33,14 @@ private class LayoutBuilder(
 ) {
     private val source = "\n".repeat(maxOf(startLine - 1, 0)) + html
     private val warnings = mutableListOf<LayoutWarning>()
+    private val warned = HashSet<Pair<String, Int>>()
     private val ids = linkedMapOf<String, Native>()
 
     private fun err(message: String, line: Int, word: String? = null, suggestion: String? = null) =
         MarkupError(message, line, source, word, suggestion)
 
     private fun warn(message: String, line: Int) {
-        if (warnings.none { it.message == message && it.line == line }) warnings.add(LayoutWarning(message, line))
+        if (warned.add(Pair(message, line))) warnings.add(LayoutWarning(message, line))
     }
 
     fun build(): LayoutResult {
