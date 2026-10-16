@@ -7,19 +7,111 @@ A task list that exercises most of nativelayout: forms, lists, conditions, filte
 | File | Goes in | Purpose |
 |---|---|---|
 | `tasks.nl` | `app/src/main/assets/` | the screen: markup, conditions and loops |
-| `tasks.css` | `app/src/main/assets/` | the style, linked from `tasks.nl` with `<link rel="stylesheet">` |
+| `tasks.css` | `app/src/main/assets/` | the style, linked from `tasks.nl` |
 | `MainActivity.kt` | `app/src/main/java/<your package>/` | the logic: state, taps and storage |
 
-`tasks.css` must sit next to `tasks.nl`: the loader passed to `NativeView` resolves both files by name.
+`tasks.css` must sit next to `tasks.nl`. `tasks.nl` links it before the body:
 
-## Run it
+```html
+<nativelayout>
 
-1. Create an Android project (minimum SDK 21 or higher).
-2. Add the JitPack repository and the dependency, as described in the [root README](../../../README.md#install-android).
-3. Copy the three files to the locations above.
-4. Change the `package` line of `MainActivity.kt` to your project's package.
-5. Declare `MainActivity` as the launcher activity in `AndroidManifest.xml`.
-6. Build and run.
+<link rel="stylesheet" href="tasks.css">
+
+<body>
+    ...
+</body>
+
+</nativelayout>
+```
+
+The loader you pass to `NativeView` resolves both files by name.
+
+## Requirements
+
+- Android project with `minSdk` 21 or higher.
+- Kotlin.
+- Internet access on the first build, to download the library from JitPack.
+
+## 1. Add the JitPack repository
+
+The library is published on [JitPack](https://jitpack.io/#getnativelayout/nativelayout), so the project must be allowed to resolve from `https://jitpack.io`.
+
+`settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+`settings.gradle` (Groovy):
+
+```groovy
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+If your project has no `dependencyResolutionManagement`, add the same line to `allprojects { repositories { ... } }` in the root `build.gradle`.
+
+Without this step the build fails with `Couldn't find com.github.getnativelayout... in the configured repositories`.
+
+## 2. Add the dependency
+
+`app/build.gradle.kts`:
+
+```kotlin
+dependencies {
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2")
+}
+```
+
+`app/build.gradle` (Groovy):
+
+```groovy
+dependencies {
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2'
+}
+```
+
+The coordinates are `group:artifact:version`:
+
+| Part | Value |
+|---|---|
+| group | `com.github.getnativelayout.nativelayout` |
+| artifact | `nativelayout-android` |
+| version | a tag of the repository, for example `v0.1.2` |
+
+`nativelayout-android` already brings `nativelayout-core`. Sync the project after editing.
+
+## 3. Copy the files
+
+1. Copy `tasks.nl` and `tasks.css` to `app/src/main/assets/` (create the folder if it does not exist).
+2. Copy `MainActivity.kt` to your package folder and change its `package` line to your project's package.
+3. Make sure `AndroidManifest.xml` declares the activity as the launcher:
+
+```xml
+<activity
+    android:name=".MainActivity"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
+```
+
+## 4. Build and run
+
+Build and install. The screen is created from `tasks.nl` as native views, with three starter tasks on the first run.
 
 ## What to try
 
@@ -59,4 +151,13 @@ while (true) {
 }
 ```
 
-Since `clickIndex()` is a position among the tapped class, it always refers to the list that was rendered, which is why the code keeps `shown` instead of indexing `tasks` directly.
+`clickIndex()` is a position among the tapped class, so it always refers to the list that was rendered. That is why the code keeps `shown` instead of indexing `tasks` directly.
+
+## Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| `Couldn't find ... in the configured repositories` | the JitPack repository is missing (step 1) |
+| `screen not found: tasks.nl` | the file is not in `app/src/main/assets/` |
+| style does not apply | `tasks.css` is missing from assets or the `<link>` name is wrong |
+| red error text on screen | a `.nl` error; the message includes the line of the file |
