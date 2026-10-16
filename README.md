@@ -44,6 +44,8 @@ Want to add a language? See [Contributing](#contributing).
 
 Published through [JitPack](https://jitpack.io/#getnativelayout/nativelayout-android).
 
+Add the JitPack repository (`https://jitpack.io`) to your project:
+
 ```kotlin
 // settings.gradle.kts
 dependencyResolutionManagement {
@@ -55,6 +57,8 @@ dependencyResolutionManagement {
 }
 ```
 
+Then add the dependency:
+
 ```kotlin
 // app/build.gradle.kts
 dependencies {
@@ -64,7 +68,7 @@ dependencies {
 
 `nativelayout-android` already includes `nativelayout-core`. To use only the parser and Expander (pure JVM), depend on `nativelayout-core` instead. Minimum SDK: 21.
 
-Setup, quick start and examples: [`android/README.md`](android/README.md).
+Quick start and examples: [`android/README.md`](android/README.md) and [`android/examples/`](android/examples/).
 
 ## API
 
