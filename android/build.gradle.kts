@@ -1,0 +1,12 @@
+/*
+ * Author: Adilson C. Rafael (adilson889)
+ * Date: 2026-10-15
+ */
+
+plugins {
+    kotlin("jvm") version "2.4.0" apply false
+    kotlin("android") version "2.4.0" apply false
+    id("com.android.library") version "8.13.0" apply false
+    id("com.android.application") version "8.13.0" apply false
+    id("maven-publish")
+}
