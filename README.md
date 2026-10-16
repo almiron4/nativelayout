@@ -2,16 +2,7 @@
 
 **Create native interfaces from HTML, in any language.**
 
-[
-
-![JitPack](https://jitpack.io/v/getnativelayout/nativelayout-android.svg)
-
-](https://jitpack.io/#getnativelayout/nativelayout-android)
-[
-
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
-
-](LICENSE)
+<a href="https://jitpack.io/#getnativelayout/nativelayout-android"><img src="https://jitpack.io/v/getnativelayout/nativelayout-android.svg" alt="JitPack"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 
 A screen is written once, in a plain text file that looks like HTML. The same file works in any language: each language only supplies the Expander, the Engine and the native host. No WebView, no canvas: the file becomes real native views.
 
