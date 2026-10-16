@@ -22,6 +22,7 @@ A screen is written once, in a plain text file that looks like HTML. The same fi
 <p align="justify">
 The file describes the screen. The logic (state, taps) stays in your language, in a plain loop.
 </p>
+
 ## Community
 
 <p align="justify">
