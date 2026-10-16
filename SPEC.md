@@ -1,6 +1,6 @@
 # nativelayout - Specification
 
-Status: draft v0.2. It replaces the draft where the markup lived inside Kotlin code.
+Status: draft v0.1.0. It replaces the draft where the markup lived inside Kotlin code.
 
 ---
 
