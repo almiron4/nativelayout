@@ -29,25 +29,43 @@ object CssParser {
         return parts
     }
 
-    fun declarations(text: String, line: Int, warn: (String, Int) -> Unit): List<CssDeclaration> {
-        val result = mutableListOf<CssDeclaration>()
+    private class Parsed(val items: List<Pair<String, String>>, val warnings: List<String>)
+
+    private val IMPORTANT = Regex("\\s*!important\\s*$", RegexOption.IGNORE_CASE)
+    private val cache = HashMap<String, Parsed>()
+
+    private fun parse(text: String): Parsed {
+        val items = ArrayList<Pair<String, String>>()
+        val warnings = ArrayList<String>()
         for (part in splitTopLevel(text, ';')) {
             val p = part.trim()
             if (p.isEmpty()) continue
             val colon = p.indexOf(':')
             if (colon <= 0) {
-                warn("CSS: declaration without ':' was ignored ('$p')", line)
+                warnings.add("CSS: declaration without ':' was ignored ('$p')")
                 continue
             }
             val name = p.substring(0, colon).trim().lowercase()
-            val value = p.substring(colon + 1).trim()
-                .replace(Regex("\\s*!important\\s*$", RegexOption.IGNORE_CASE), "")
+            val value = p.substring(colon + 1).trim().replace(IMPORTANT, "")
             if (value.isEmpty()) {
-                warn("CSS: property '$name' has no value and was ignored", line)
+                warnings.add("CSS: property '$name' has no value and was ignored")
                 continue
             }
-            result.add(CssDeclaration(name, value, line))
+            items.add(Pair(name, value))
         }
+        return Parsed(items, warnings)
+    }
+
+    fun declarations(text: String, line: Int, warn: (String, Int) -> Unit): List<CssDeclaration> {
+        val parsed = synchronized(cache) { cache[text] } ?: parse(text).also {
+            synchronized(cache) {
+                if (cache.size > 512) cache.clear()
+                cache[text] = it
+            }
+        }
+        for (w in parsed.warnings) warn(w, line)
+        val result = ArrayList<CssDeclaration>(parsed.items.size)
+        for (d in parsed.items) result.add(CssDeclaration(d.first, d.second, line))
         return result
     }
 }
@@ -92,7 +110,7 @@ object CssValues {
             }
         }
 
-        val m = Regex("""^rgba?\(([^)]*)\)$""").matchEntire(t) ?: return null
+        val m = REGEX_RGB.matchEntire(t) ?: return null
         val parts = m.groupValues[1].split(',', ' ', '/').map { it.trim() }.filter { it.isNotEmpty() }
         if (parts.size !in 3..4) return null
         fun channel(s: String): Int? =
@@ -111,6 +129,7 @@ object CssValues {
         return pack(r.coerceIn(0, 255), g.coerceIn(0, 255), b.coerceIn(0, 255), a)
     }
 
+    private val REGEX_RGB = Regex("""^rgba?\(([^)]*)\)$""")
     private val REGEX_LENGTH = Regex("""^(-?\d*\.?\d+)(px|rem)$""")
 
     fun length(text: String): Length? {
