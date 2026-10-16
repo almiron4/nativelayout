@@ -544,9 +544,13 @@ class AndroidLayoutHost(
         }
         val height = when {
             e.flex > 0f -> ViewGroup.LayoutParams.MATCH_PARENT
-            e.height is Size.Dim -> px(e.height.length)
-            e.height is Size.Percent && e.height.value >= 100f -> ViewGroup.LayoutParams.MATCH_PARENT
-            else -> ViewGroup.LayoutParams.WRAP_CONTENT
+            else -> when (val m = e.height) {
+                is Size.Dim -> px(m.length)
+                is Size.Percent ->
+                    if (m.value >= 100f) ViewGroup.LayoutParams.MATCH_PARENT
+                    else ViewGroup.LayoutParams.WRAP_CONTENT
+                else -> ViewGroup.LayoutParams.WRAP_CONTENT
+            }
         }
         return FrameLayout.LayoutParams(width, height).apply {
             setMargins(px(e.margin.left), px(e.margin.top), px(e.margin.right), px(e.margin.bottom))
