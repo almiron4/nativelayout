@@ -22,6 +22,11 @@ A screen is written once, in a plain text file that looks like HTML. The same fi
 <p align="justify">
 The file describes the screen. The logic (state, taps) stays in your language, in a plain loop.
 </p>
+## Community
+
+<p align="justify">
+<a href="https://discord.gg/638USuPnpk">Join our Community on Discord</a> to ask questions, share ideas and show the screens you built. Bugs and feature proposals go in the <a href="../../issues">issue tracker</a>, so they are not lost.
+</p>
 
 ## Why nativelayout
 
