@@ -6,37 +6,7 @@
 
 A screen is written once, in a plain text file that looks like HTML. The same file works in any language: each language only supplies the Expander, the Engine and the native host. No WebView, no canvas: the file becomes real native views.
 
-```html
-<nativelayout>
-
-<style>
-    body { flex: 1; justify-content: center; align-items: center; gap: 1rem; }
-    .big { font-size: 3rem; font-weight: bold; }
-    .row { flex-direction: row; gap: 0.75rem; }
-</style>
-
-<body>
-    <p class="big">{n}</p>
-    <div class="row">
-        <button id="minus">-</button>
-        <button id="plus">+</button>
-    </div>
-</body>
-
-</nativelayout>
-```
-
-```kotlin
-val counter = screen("counter.nl")
-var n = 0
-
-while (render(counter, mapOf("n" to n))) {
-    if (click("plus")) n++
-    if (click("minus")) n--
-}
-```
-
-The file describes the screen. The logic stays in your language, in a plain loop.
+The file describes the screen. The logic (state, taps) stays in your language, in a plain loop.
 
 ## Why nativelayout
 
@@ -49,12 +19,26 @@ The file describes the screen. The logic stays in your language, in a plain loop
 
 ## Implementations
 
-| Language | Status | Folder |
-|---|---|---|
-| Kotlin (Android) | implemented | [`android/`](android/) |
-| Python (Kivy, Tkinter) | planned | - |
+The `.nl` file is the same everywhere. Each language only needs an Expander, an Engine and a native host.
 
-Each implementation lives in its own folder and is published as a library. The Android folder also contains an editor app (`android/app`) with live preview, used to test screens on-device.
+| Language | Target | Status | Folder |
+|---|---|---|---|
+| Kotlin | Android (native views) | implemented | [`android/`](android/) |
+| Java | Android (native views) | planned | - |
+| Python | Kivy | planned | - |
+| Python | Tkinter | planned | - |
+| Swift | iOS (UIKit) | planned | - |
+| JavaScript / TypeScript | React Native | planned | - |
+| Dart | Flutter | planned | - |
+| C# | .NET MAUI | planned | - |
+| Java | Swing / JavaFX (desktop) | planned | - |
+| C++ | Qt | planned | - |
+| Rust | desktop | planned | - |
+| Go | desktop | planned | - |
+
+Each implementation lives in its own folder and is published as a library. Usage guides and examples live in each folder. The Android folder also contains an editor app (`android/app`) with live preview, used to test screens on-device.
+
+Want to add a language? See [Contributing](#contributing).
 
 ## Install (Android)
 
@@ -78,57 +62,17 @@ dependencies {
 }
 ```
 
-`nativelayout-android` already includes `nativelayout-core`. To use only the parser and Expander (pure JVM):
+`nativelayout-android` already includes `nativelayout-core`. To use only the parser and Expander (pure JVM), depend on `nativelayout-core` instead. Minimum SDK: 21.
 
-```kotlin
-implementation("com.github.getnativelayout.nativelayout-android:nativelayout-core:v0.1.1")
-```
-
-Minimum SDK: 21.
-
-## Quick start (Android)
-
-Put `counter.nl` in `src/main/assets/`, then:
-
-```kotlin
-class MainActivity : Activity() {
-    private lateinit var ui: NativeView
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        val area = FrameLayout(this)
-        setContentView(area)
-
-        ui = NativeView(
-            this,
-            area,
-            { name -> runCatching { assets.open(name).bufferedReader().use { it.readText() } }.getOrNull() }
-        ) {
-            val counter = screen("counter.nl")
-            var n = 0
-
-            while (render(counter, mapOf("n" to n))) {
-                if (click("plus")) n++
-                if (click("minus")) n--
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        ui.close()
-        super.onDestroy()
-    }
-}
-```
-
-`NativeView(context, area, loader) { ... }` takes the Android context, the `FrameLayout` where the screen is drawn, a loader that returns the text of a file by name (used for `.nl` files and linked `.css`), and the program block. The block is a suspend lambda: `render` suspends until the next tap.
+Setup, quick start and examples: [`android/README.md`](android/README.md).
 
 ## API
 
+The same verbs exist in every language.
+
 | Verb | Does |
 |---|---|
-| `screen(name)` | loads a `.nl` file through the loader and returns a `Screen` |
+| `screen(name)` | loads a `.nl` file and returns a screen |
 | `render(screen, data)` | shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
 | `click(target)` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | position, from 0, of the tapped element of the class |
@@ -136,12 +80,12 @@ class MainActivity : Activity() {
 | `checked(id)` | state of a checkbox, `false` if it does not exist |
 | `setValue(id, text)` | fills or clears a field (`"1"` / `"0"` for a checkbox) |
 | `save(key, text)` | stores text on the device |
-| `load(key)` | reads stored text, `null` if missing |
+| `load(key)` | reads stored text |
 | `exists(key)` | `true` if the key is stored |
 | `delete(key)` | removes a stored key |
-| `close()` | releases the host; call it in `onDestroy` |
+| `close()` | releases the host |
 
-Data passed to `render` is plain: text, number, bool, `List` and `Map`.
+Data passed to `render` is plain: text, number, bool, list and map.
 
 ## The file format
 
@@ -151,24 +95,6 @@ Data passed to `render` is plain: text, number, bool, `List` and `Map`.
     <style> ... </style>                       (optional)
     <body> ... </body>                         (exactly one)
 </nativelayout>
-```
-
-**Values and control**
-
-```html
-<p>{task.title} - {pending} pending</p>
-
-if pending == 0:
-    <p>Nothing to do.</p>
-elif pending < 5:
-    <p>Almost there.</p>
-else:
-    <p>Busy day.</p>
-end
-
-for task in tasks:
-    <div class="card">{task.title}</div>
-end
 ```
 
 **Tags**
@@ -190,7 +116,7 @@ end
 - Units: `rem`, `px` (dp) and `0`. Percentages only in `width` and `height`.
 - Not supported in v1: descendant and child selectors, pseudo-classes, attribute selectors, `@media`, `<script>`.
 
-The full format, cascade rules, error messages and five complete examples (counter, login, task list, quiz, settings) are in [`SPEC.md`](SPEC.md).
+Values (`{name}`), control lines (`if`, `elif`, `else`, `for`, `end`), the cascade rules, error messages and complete examples are in [`SPEC.md`](SPEC.md).
 
 ## How it works
 
@@ -207,18 +133,13 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 ## Repository layout
 
 ```
-android/
-  core/      pure JVM: parser, CSS reader, Expander, neutral tree, diff, host interface
-  android/   AndroidLayoutHost and NativeView
-  app/       editor with live preview and a demo activity
+android/     Kotlin implementation (core, android, app), with its own README and examples
 SPEC.md      the file format, shared by every language
 ```
 
-Build and publishing details for Android are in [`android/README.md`](android/README.md).
-
 ## Contributing
 
-Issues and pull requests are welcome. A new language implementation needs an Expander, an Engine and a native host that follow `SPEC.md`; the `.nl` files must work unchanged.
+Issues and pull requests are welcome. A new language implementation needs an Expander, an Engine and a native host that follow `SPEC.md`; the `.nl` files must work unchanged. Put it in its own folder, with its own README and examples.
 
 ## License
 
