@@ -1,5 +1,5 @@
 /*
- * Author: Adilson C. Rafael (adilson889)
+ * Author: Adilson C. Rafael (@adilson889)
  * Date: 2026-10-15
  */
 
