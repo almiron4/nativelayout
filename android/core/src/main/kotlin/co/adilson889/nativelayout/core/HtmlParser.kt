@@ -14,6 +14,8 @@ sealed class HtmlNode {
     abstract val line: Int
 }
 
+private val WHITESPACE = Regex("\\s+")
+
 class HtmlElement(
     val tag: String,
     val attributes: Map<String, String>,
@@ -22,7 +24,7 @@ class HtmlElement(
 ) : HtmlNode() {
     val id: String? get() = attributes["id"]?.trim()?.takeIf { it.isNotEmpty() }
     val classes: List<String>
-        get() = attributes["class"]?.split(Regex("\\s+"))?.filter { it.isNotEmpty() } ?: emptyList()
+        get() = attributes["class"]?.split(WHITESPACE)?.filter { it.isNotEmpty() } ?: emptyList()
 }
 
 class HtmlText(val text: String, override val line: Int) : HtmlNode()
