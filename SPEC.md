@@ -1,12 +1,38 @@
-# nativelayout — Specification
+<div align="center">
 
-Version 0.1.0.
+<h1>nativelayout</h1>
+
+<p><strong>Specification</strong></p>
+
+<p>Version 0.1.0</p>
+
+</div>
+
+<br>
+
+## Contents
+
+1. [Idea](#1-idea)
+2. [The file](#2-the-file)
+3. [How it works](#3-how-it-works)
+4. [Style](#4-style)
+5. [Body](#5-body)
+6. [Values and control](#6-values-and-control)
+7. [Data](#7-data)
+8. [The program side](#8-the-program-side)
+9. [render](#9-render)
+10. [Errors](#10-errors)
+11. [Targets](#11-targets)
+12. [Examples](#12-examples)
+13. [Good practices](#13-good-practices)
 
 ---
 
 ## 1. Idea
 
+<p align="justify">
 A screen is written once, in a plain text file that looks like HTML. The same file works in any language: each language only supplies the program side and the part that draws native components.
+</p>
 
 - The file is HTML you already know, plus three additions: `{value}`, `if` / `for` lines, and a `<style>` with simple selectors.
 - It has no functions, no classes and no variables. The logic stays outside, in each language.
@@ -57,7 +83,9 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 - **Engine:** HTML parser, style reader, neutral tree and diff.
 - **Host:** creates the native components.
 
-For each language there is an expander, an engine, a host and the program verbs (section 8). The `.nl` file is the same for all of them.
+<p align="justify">
+For each language there is an Expander, an Engine, a host and the program verbs (section 8). The <code>.nl</code> file is the same for all of them.
+</p>
 
 ---
 
@@ -74,9 +102,13 @@ For each language there is an expander, an engine, a host and the program verbs 
 | `#name` | the element with that id |
 | `h1, h2` | a list, separated by commas |
 
-Not supported in v1: `a b`, `a > b`, `:hover` and other pseudo-classes, attribute selectors, `@media`. They are an error. `!important` is ignored.
+<p align="justify">
+Not supported in v1: <code>a b</code>, <code>a &gt; b</code>, <code>:hover</code> and other pseudo-classes, attribute selectors, <code>@media</code>. They are an error. <code>!important</code> is ignored.
+</p>
 
-**Cascade.** The weight is: tag, then class, then id, then the `style="..."` attribute, each overriding the one before. At the same weight, the later rule wins (see section 2.3 for how `<link>` and the file's own `<style>` order against each other).
+<p align="justify">
+<strong>Cascade.</strong> The weight is: tag, then class, then id, then the <code>style="..."</code> attribute, each overriding the one before. At the same weight, the later rule wins (see section 2.3 for how <code>&lt;link&gt;</code> and the file's own <code>&lt;style&gt;</code> order against each other).
+</p>
 
 ### 4.2 Variables
 
@@ -85,7 +117,9 @@ Not supported in v1: `a b`, `a > b`, `:hover` and other pseudo-classes, attribut
 body  { background: var(--bg); }
 ```
 
-A variable that is not declared in `:root` is an error.
+<p align="justify">
+A variable that is not declared in <code>:root</code> is an error.
+</p>
 
 ### 4.3 Properties
 
@@ -114,9 +148,13 @@ A variable that is not declared in `:root` is an error.
 | `img` | image |
 | `ul`, `li` | list; each `li` gets a bullet |
 
+<p align="justify">
 A tag outside this list is an error.
+</p>
 
+<p align="justify">
 The whole screen scrolls: the root sits in one vertical scroll container. A long list scrolls the screen, and a bar pinned to the bottom is not possible in v1.
+</p>
 
 ### 5.2 Attributes
 
@@ -144,18 +182,25 @@ The whole screen scrolls: the root sits in one vertical scroll container. A long
 
 ### 6.1 Values: `{name}`
 
-Shows the value of a name, as text and escaped. It works in text and in attribute values (not `id` or `class`).
+<p align="justify">
+Shows the value of a name, as text and escaped. It works in text and in attribute values (not <code>id</code> or <code>class</code>), including the <code>style</code> attribute.
+</p>
 
 ```html
 <p>{task.title} - {pending} pending</p>
 <input id="title" value="{draft}">
+<div class="fill" style="width: {percent}%"></div>
 ```
 
-Only names, with or without dots, are allowed inside `{ }`: `{pending}`, `{task.title}`. A literal brace is written `\{` and `\}`. Inside `<style>` the braces are CSS and are not values.
+<p align="justify">
+Only names, with or without dots, are allowed inside <code>{ }</code>: <code>{pending}</code>, <code>{task.title}</code>. A literal brace is written <code>\{</code> and <code>\}</code>. Inside <code>&lt;style&gt;</code> the braces are CSS and are not values.
+</p>
 
 ### 6.2 Control lines
 
+<p align="justify">
 A line is control when, after trimming, it is exactly one of these:
+</p>
 
 ```
 if condition:
@@ -189,23 +234,30 @@ operand   := name | number | "text" | true | false
 
 ## 7. Data
 
-The program hands the data to `render`. The data is plain, like JSON: text, number, bool, list and map. A name in the file is looked up in it; a name that is missing is an error.
+<p align="justify">
+The program hands the data to <code>render</code>. The data is plain, like JSON: text, number, bool, list and map. A name in the file is looked up in it; a name that is missing is an error.
+</p>
 
 ```
 pending = 2
 tasks   = [ { title: "Buy bread", done: false }, { title: "Call Ana", done: true } ]
 ```
 
-Kotlin uses `Map` and `List`, Python uses `dict` and `list`, so the same file reads the same data in any language. A name that holds a list or a map cannot be shown with `{ }`: use `for` or a name inside it.
+<p align="justify">
+Kotlin uses <code>Map</code> and <code>List</code>, Python uses <code>dict</code> and <code>list</code>, so the same file reads the same data in any language. A name that holds a list or a map cannot be shown with <code>{ }</code>: use <code>for</code> or a name inside it.
+</p>
 
 ---
 
 ## 8. The program side
 
+<p align="justify">
 The file only describes. The logic (state, taps) is written in each language, with the same verbs:
+</p>
 
 | Verb | Python style | Does |
 |---|---|---|
+| `screen(name)` | `screen` | loads a `.nl` file and returns a screen |
 | `render(screen, data)` | `render` | shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
 | `click(target)` | `click` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | `click_index` | position, from 0, of the tapped element of the class |
@@ -213,8 +265,20 @@ The file only describes. The logic (state, taps) is written in each language, wi
 | `checked(id)` | `checked` | state of a checkbox, `false` if it does not exist |
 | `setValue(id, text)` | `set_value` | fills or clears a field (`"1"` / `"0"` for a checkbox) |
 | `save(key, text)`, `load(key)`, `exists(key)`, `delete(key)` | same | store text on the device |
+| `close()` | `close` | releases the host |
 
-Kotlin (Android):
+### 8.1 Kotlin (Android)
+
+<p align="justify">
+<code>NativeView(context, area, loader) { ... }</code> creates the view and runs the program block, which is a suspend lambda: <code>render</code> suspends until the next tap.
+</p>
+
+| Parameter | Meaning |
+|---|---|
+| `context` | the Android context |
+| `area` | the `FrameLayout` where the screen is drawn |
+| `loader` | returns the text of a file by name, or `null`; used for `.nl` files and linked `.css` |
+| block | the program: state, `render` loop and taps |
 
 ```kotlin
 class MainActivity : Activity() {
@@ -222,7 +286,15 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ui = NativeView(this) {
+
+        val area = FrameLayout(this)
+        setContentView(area)
+
+        ui = NativeView(
+            this,
+            area,
+            { name -> runCatching { assets.open(name).bufferedReader().use { it.readText() } }.getOrNull() }
+        ) {
             val panel = screen("panel.nl")
             var pending = 0
 
@@ -239,7 +311,7 @@ class MainActivity : Activity() {
 }
 ```
 
-Python (illustrative, not built yet):
+### 8.2 Python (illustrative, not built yet)
 
 ```python
 with NativeView(app) as ui:
@@ -267,7 +339,9 @@ with NativeView(app) as ui:
 
 ## 10. Errors
 
-Same format as the other messages, with the line of the `.nl` file.
+<p align="justify">
+Same format as the other messages, with the line of the <code>.nl</code> file. On Android the message is shown on screen, in red, in place of the screen.
+</p>
 
 | Situation | Message |
 |---|---|
@@ -296,17 +370,36 @@ Same format as the other messages, with the line of the `.nl` file.
 
 ## 11. Targets
 
-| Target | Status |
-|---|---|
-| Android, Kotlin | implemented: expander, engine, host and the verbs of section 8 |
-| Python, Kivy | planned; flex and rounded corners drawn by hand |
-| Python, Tkinter | planned; no flex and no rounded corners: gap and radius ignored with a warning |
+<p align="justify">
+The <code>.nl</code> file is the same everywhere. Each target needs an Expander, an Engine and a native host.
+</p>
 
+| Language | Target | Status |
+|---|---|---|
+| Kotlin | Android (native views) | implemented: Expander, Engine, host and the verbs of section 8 |
+| Java | Android (native views) | planned |
+| Python | Kivy | planned; flex and rounded corners drawn by hand |
+| Python | Tkinter | planned; no flex and no rounded corners: gap and radius ignored with a warning |
+| Swift | iOS (UIKit) | planned |
+| JavaScript / TypeScript | React Native | planned |
+| Dart | Flutter | planned |
+| C# | .NET MAUI | planned |
+| Java | Swing / JavaFX (desktop) | planned |
+| C++ | Qt | planned |
+| Rust | desktop | planned |
+| Go | desktop | planned |
+
+<p align="justify">
 Each target supports a subset of the style. What a target cannot draw gives a warning, never an error.
+</p>
 
 ---
 
 ## 12. Examples
+
+<p align="justify">
+Each example is a <code>.nl</code> file followed by the program side in Kotlin. A complete, runnable project is in <a href="android/examples/tasks/"><code>android/examples/tasks/</code></a>.
+</p>
 
 ### 12.1 Counter (basics)
 
@@ -332,10 +425,10 @@ Each target supports a subset of the style. What a target cannot draw gives a wa
 ```
 
 ```kotlin
-val screen = screen("counter.nl")
+val counter = screen("counter.nl")
 var n = 0
 
-while (render(screen, mapOf("n" to n, "twice" to n * 2))) {
+while (render(counter, mapOf("n" to n, "twice" to n * 2))) {
     if (click("plus")) n++
     if (click("minus")) n--
 }
@@ -373,6 +466,7 @@ while (render(screen, mapOf("n" to n, "twice" to n * 2))) {
 ```
 
 ```kotlin
+val login = screen("login.nl")
 var signed = false
 var failed = false
 var user = ""
@@ -428,6 +522,7 @@ while (render(login, mapOf("signed" to signed, "failed" to failed, "user" to use
 ```
 
 ```kotlin
+val panel = screen("tasks.nl")
 val tasks = mutableListOf<MutableMap<String, Any>>(
     mutableMapOf("title" to "Test nativelayout", "done" to true),
     mutableMapOf("title" to "Write the documentation", "done" to false)
@@ -538,7 +633,8 @@ if (click("next")) { index++; picked = -1 }
 ```
 
 ```kotlin
-var name = load("name")
+val settings = screen("settings.nl")
+var name = load("name") ?: ""
 var dark = load("dark") == "1"
 var notify = if (exists("notify")) load("notify") == "1" else true
 var saved = false
@@ -570,3 +666,4 @@ while (render(settings, mapOf("name" to name, "dark" to dark, "notify" to notify
 - Put colors in `:root` and use `var(--name)`, so a theme change is one edit.
 - Write one variant per state (`.right`, `.wrong`) instead of computing a class.
 - Give a field a `value="{name}"` to open it with a stored text.
+- Keep the data given to `render` in sync with what you tap: when a list is filtered, index into the filtered list that was rendered, not into the full one.
