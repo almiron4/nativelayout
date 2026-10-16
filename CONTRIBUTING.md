@@ -1,4 +1,4 @@
-# Contributing to nativelayout
+ # Contributing to nativelayout
 
 <p align="justify">
 Thank you for wanting to help. This guide says exactly what to do, in order, for each kind of contribution. If something here is unclear, that is a bug in this guide: open an issue and say which step confused you.
@@ -32,8 +32,13 @@ Thank you for wanting to help. This guide says exactly what to do, in order, for
 | Fix a typo or improve a guide | Edit the file on GitHub and open a pull request ([section 7](#7-send-a-pull-request)) |
 | Write an implementation for another language | [Section 9](#9-add-a-new-language) |
 | Add an example screen | [Section 10](#10-add-or-change-an-example) |
+| Ask a question or show what you built | [Join our Community on Discord](https://discord.gg/638USuPnpk) |
 
 ---
+<p align="justify">
+Not sure where something belongs? Ask on <a href="https://discord.gg/638USuPnpk">Discord</a> first. Use it for questions and discussion; use issues for bugs and proposals, so decisions stay on record.
+</p>
+
 
 ## 2. The one rule behind every decision
 
