@@ -8,6 +8,8 @@
 
 <a href="https://jitpack.io/#getnativelayout/nativelayout"><img src="https://jitpack.io/v/getnativelayout/nativelayout.svg" alt="JitPack"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+<br>
+<a href="https://discord.gg/638USuPnpk"><img src="https://img.shields.io/badge/-Join%20our%20Community%20on%20Discord-5865F2?logo=discord&logoColor=white&style=for-the-badge" alt="Join our Community on Discord"></a>
 
 </div>
 
