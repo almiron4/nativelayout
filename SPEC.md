@@ -1,6 +1,6 @@
-# nativelayout - Specification
+# nativelayout — Specification
 
-Status: draft v0.1.0. It replaces the draft where the markup lived inside Kotlin code.
+Version 0.1.0.
 
 ---
 
@@ -34,14 +34,14 @@ A screen is written once, in a plain text file that looks like HTML. The same fi
 ```
 
 1. The first thing in the file is `<nativelayout>` and the last is `</nativelayout>`.
-2. Between them: zero or more `<link rel="stylesheet" href="...">`, then exactly one `<body>`. Nothing else.
-3. `<style>` is not allowed in the `.nl`. All style lives in `.css` files, with the rules of section 4.
+2. Between them: zero or more `<link rel="stylesheet" href="...">`, then an optional `<style>`, then exactly one `<body>`. Nothing else.
+3. Style can live in `.css` files (via `<link>`), inline in the file's own `<style>`, or both. The cascade in section 4.1 applies across all of them: `<link>` rules apply in the order the tags appear, and the file's own `<style>` is evaluated last, so it wins at equal weight.
 4. `<body>` is the root of the screen. Everything visible goes inside it.
-5. Comments are `<!-- ... -->` in the `.nl`, and `/* ... */` in the `.css`.
+5. Comments are `<!-- ... -->` in the `.nl`, and `/* ... */` in CSS.
 6. `<script>` is not allowed.
-7. The path in `href` is relative to the `.nl`. The cascade follows the order of the `<link>` tags: at the same weight, the later rule wins.
+7. The path in `href` is relative to the `.nl`. A linked file is plain CSS: the same selectors and properties as section 4, no `{value}` and no control lines. It cannot link another file.
 8. Files are UTF-8.
-9. One screen is one `.nl`. The extension is `.nl` (proposal).
+9. One screen is one `.nl` file.
 
 ---
 
@@ -54,8 +54,8 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 ```
 
 - **Expander:** reads the file once. On each `render` it evaluates the control lines and the `{values}` with the data, writes the result of the selectors into the `style` of each element, and turns `<body>` into the root container. Its output is plain HTML with inline styles and no control.
-- **Engine:** HTML parser, style reader, neutral tree and diff. In Kotlin it already exists and does not change.
-- **Host:** creates the native components (Android `View` objects).
+- **Engine:** HTML parser, style reader, neutral tree and diff.
+- **Host:** creates the native components.
 
 For each language there is an expander, an engine, a host and the program verbs (section 8). The `.nl` file is the same for all of them.
 
@@ -76,7 +76,7 @@ For each language there is an expander, an engine, a host and the program verbs 
 
 Not supported in v1: `a b`, `a > b`, `:hover` and other pseudo-classes, attribute selectors, `@media`. They are an error. `!important` is ignored.
 
-**Cascade.** The weight is: tag, then class, then id, then the `style="..."` attribute, each overriding the one before. At the same weight, the later rule wins.
+**Cascade.** The weight is: tag, then class, then id, then the `style="..."` attribute, each overriding the one before. At the same weight, the later rule wins (see section 2.3 for how `<link>` and the file's own `<style>` order against each other).
 
 ### 4.2 Variables
 
@@ -151,7 +151,7 @@ Shows the value of a name, as text and escaped. It works in text and in attribut
 <input id="title" value="{draft}">
 ```
 
-Only names with dots are allowed inside `{ }`: `{pending}`, `{task.title}`. A literal brace is written `\{` and `\}`. Inside `<style>` the braces are CSS and are not values.
+Only names, with or without dots, are allowed inside `{ }`: `{pending}`, `{task.title}`. A literal brace is written `\{` and `\}`. Inside `<style>` the braces are CSS and are not values.
 
 ### 6.2 Control lines
 
@@ -272,6 +272,10 @@ Same format as the other messages, with the line of the `.nl` file.
 | Situation | Message |
 |---|---|
 | Identity missing | `the file must start with <nativelayout> and end with </nativelayout>` |
+| `<link>` not before `<body>` | `a <link> must come before <body>` |
+| `<link>` missing rel/href | `markup: <link> needs rel="stylesheet" and a href` |
+| Linked file not found | `style: the file 'theme.css' was not found` |
+| Linked file imports another | `style: a style file cannot import another file` |
 | Unknown selector | `style: the selector 'ul li' is not supported (line 8)` |
 | Undefined variable | `style: the variable '--bg' is not defined in ':root'` |
 | Unsupported tag | `markup: the tag 'table' is not supported (line 18)` |
@@ -292,11 +296,11 @@ Same format as the other messages, with the line of the `.nl` file.
 
 ## 11. Targets
 
-| Target | Status | Notes (proposal) |
-|---|---|---|
-| Android, Kotlin | engine and host exist | needs the expander and the verbs |
-| Python, Kivy | planned | flex and rounded corners drawn by hand |
-| Python, Tkinter | planned | no flex and no rounded corners: gap and radius ignored with a warning |
+| Target | Status |
+|---|---|
+| Android, Kotlin | implemented: expander, engine, host and the verbs of section 8 |
+| Python, Kivy | planned; flex and rounded corners drawn by hand |
+| Python, Tkinter | planned; no flex and no rounded corners: gap and radius ignored with a warning |
 
 Each target supports a subset of the style. What a target cannot draw gives a warning, never an error.
 
