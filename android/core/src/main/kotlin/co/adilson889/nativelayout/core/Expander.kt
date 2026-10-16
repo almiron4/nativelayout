@@ -1,4 +1,4 @@
-/*
+ /*
  * Author: Adilson C. Rafael (adilson889)
  * Date: 2026-10-15
  */
@@ -16,11 +16,24 @@ class ExpandError(
 ) : NativeLayoutError(message, line, extractLine(source, line), word, suggestion)
 
 object Expander {
+    private val cache = HashMap<String, Any>()
+
     fun expand(
         source: String,
         data: Map<String, Any?>,
         resolve: (String) -> String? = { null }
     ): ExpandedScreen = ScreenExpander(source, data, resolve).expand()
+
+    internal fun cached(key: String): Any? = synchronized(cache) { cache[key] }
+
+    internal fun store(key: String, prepared: Any) {
+        synchronized(cache) {
+            if (cache.size >= 32) cache.clear()
+            cache[key] = prepared
+        }
+    }
+
+    fun clearCache() = synchronized(cache) { cache.clear() }
 }
 
 private const val KIND_TAG = 1
@@ -41,15 +54,29 @@ private class Rule(
 
 private class Attr(val key: String, val value: String?)
 
+private val MISSING = Any()
+
 private class Scope(val parent: Scope?, val vars: Map<String, Any?>) {
+    fun find(name: String): Any? {
+        var s: Scope? = this
+        while (s != null) {
+            if (s.vars.containsKey(name)) return s.vars[name]
+            s = s.parent
+        }
+        return MISSING
+    }
+
     fun has(name: String): Boolean = vars.containsKey(name) || (parent?.has(name) ?: false)
     fun get(name: String): Any? = if (vars.containsKey(name)) vars[name] else parent?.get(name)
 }
 
 private sealed class Node
-private class TextNode(val text: String, val line: Int) : Node()
+private class TextNode(val text: String, val line: Int) : Node() {
+    var parts: Array<Part>? = null
+}
 private class Branch(val condition: String?, val line: Int) {
     val nodes = ArrayList<Node>()
+    var tokens: List<String>? = null
 }
 private class IfNode(val line: Int) : Node() {
     val branches = ArrayList<Branch>()
@@ -60,6 +87,53 @@ private class ForNode(val line: Int, val variable: String, val listName: String)
 private class Frame(val openLine: Int, var nodes: MutableList<Node>, val ifNode: IfNode?)
 private class Control(val type: String, val argument: String, val variable: String = "")
 
+private object Rx {
+    val tagRegex = Regex("""<[^<>]*>""")
+    val tagNameRegex = Regex("""^<([A-Za-z][A-Za-z0-9-]*)""")
+    val attrRegex = Regex("""([A-Za-z_:][-A-Za-z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?""")
+    val braceRegex = Regex("""\\[{}]|\{([^{}]*)\}""")
+    val nameRegex = Regex("""^[A-Za-z_][A-Za-z0-9_.]*$""")
+    val singleValueRegex = Regex("""^\{\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\}$""")
+    val varRegex = Regex("""var\(\s*(--[A-Za-z0-9_-]+)\s*\)""")
+    val ruleRegex = Regex("""([^{}]+)\{([^{}]*)\}""")
+    val commentRegex = Regex("""/\*[\s\S]*?\*/""")
+    val forRegex = Regex("""^for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+([A-Za-z_][A-Za-z0-9_.]*):$""")
+    val keywordRegex = Regex("""^(if|elif|for)\s""")
+    val elseSpaceRegex = Regex("""^else\s+:$""")
+    val tokenRegex = Regex("""==|!=|<=|>=|<|>|\(|\)|"[^"]*"|-?\d+(?:\.\d+)?|[A-Za-z_][A-Za-z0-9_.]*""")
+    val tagSelector = Regex("""[A-Za-z][A-Za-z0-9]*""")
+    val classSelector = Regex("""\.[A-Za-z_][A-Za-z0-9_-]*""")
+    val idSelector = Regex("""#[A-Za-z_][A-Za-z0-9_-]*""")
+    val comparators = setOf("==", "!=", "<", ">", "<=", ">=")
+}
+
+private sealed class Part
+private class Lit(val s: String) : Part()
+private class Val(val inner: String) : Part() {
+    val name = inner.trim()
+    val ok = Rx.nameRegex.matches(name)
+    val path: List<String> = name.split(".")
+}
+private class AttrPlan(
+    val orig: String,
+    val key: String,
+    val value: String?,
+    val brace: Boolean,
+    val single: String?,
+    val textParts: Array<Part>?
+)
+private class DynTag(
+    val name: String,
+    val lower: String,
+    val selfClose: Boolean,
+    val ruleStyle: String,
+    val attrs: Array<AttrPlan>
+) : Part()
+
+private class Prepared(val rules: List<Rule>, val nodes: List<Node>)
+
+private val EMPTY_SCOPE = Scope(null, emptyMap())
+
 private class ScreenExpander(
     private val source: String,
     private val data: Map<String, Any?>,
@@ -67,29 +141,12 @@ private class ScreenExpander(
 ) {
 
     private val lines = source.split("\n")
-    private val rules = ArrayList<Rule>()
+    private var rules: List<Rule> = ArrayList()
     private val variables = LinkedHashMap<String, String>()
     private var ruleOrder = 0
     private val out = ArrayList<String>()
     private val outLines = ArrayList<Int>()
 
-    private val tagRegex = Regex("""<[^<>]*>""")
-    private val tagNameRegex = Regex("""^<([A-Za-z][A-Za-z0-9-]*)""")
-    private val attrRegex = Regex("""([A-Za-z_:][-A-Za-z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?""")
-    private val braceRegex = Regex("""\\[{}]|\{([^{}]*)\}""")
-    private val nameRegex = Regex("""^[A-Za-z_][A-Za-z0-9_.]*$""")
-    private val singleValueRegex = Regex("""^\{\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\}$""")
-    private val varRegex = Regex("""var\(\s*(--[A-Za-z0-9_-]+)\s*\)""")
-    private val ruleRegex = Regex("""([^{}]+)\{([^{}]*)\}""")
-    private val commentRegex = Regex("""/\*[\s\S]*?\*/""")
-    private val forRegex = Regex("""^for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+([A-Za-z_][A-Za-z0-9_.]*):$""")
-    private val keywordRegex = Regex("""^(if|elif|for)\s""")
-    private val elseSpaceRegex = Regex("""^else\s+:$""")
-    private val tokenRegex = Regex("""==|!=|<=|>=|<|>|\(|\)|"[^"]*"|-?\d+(?:\.\d+)?|[A-Za-z_][A-Za-z0-9_.]*""")
-    private val tagSelector = Regex("""[A-Za-z][A-Za-z0-9]*""")
-    private val classSelector = Regex("""\.[A-Za-z_][A-Za-z0-9_-]*""")
-    private val idSelector = Regex("""#[A-Za-z_][A-Za-z0-9_-]*""")
-    private val comparators = setOf("==", "!=", "<", ">", "<=", ">=")
 
     private fun err(message: String, line: Int, word: String? = null, suggestion: String? = null) =
         ExpandError(message, line, source, word, suggestion)
@@ -101,7 +158,7 @@ private class ScreenExpander(
     private fun linkHref(tag: String, line: Int): String {
         val attrs = HashMap<String, String>()
         val inner = tag.removePrefix("<link").removeSuffix(">").removeSuffix("/")
-        for (a in attrRegex.findAll(inner)) {
+        for (a in Rx.attrRegex.findAll(inner)) {
             val value = a.groups[2]?.value ?: a.groups[3]?.value ?: a.groups[4]?.value ?: continue
             attrs[a.groupValues[1].lowercase()] = value
         }
@@ -173,22 +230,37 @@ private class ScreenExpander(
         if (bodyStart < 0) throw err("the file must have exactly one <body>", first + 1)
 
         val loaded = HashSet<String>()
+        val sheets = ArrayList<Triple<String, Int, String>>()
         for ((href, linkLine) in links) {
             if (!loaded.add(href)) continue
             val css = resolve(href) ?: throw err("style: the file '$href' was not found", linkLine, href)
             if (css.contains("@import")) throw err("style: a style file cannot import another file", linkLine, href)
-            parseStyle(css, 1, href, linkLine)
+            sheets.add(Triple(href, linkLine, css))
         }
-        if (styleStart >= 0) parseStyle(lines.subList(styleStart, styleEnd).joinToString("\n"), styleStart + 1)
-        resolveVariables()
-        val nodes = buildNodes(bodyStart, bodyEnd)
-        emit(nodes, Scope(null, data))
+
+        val key = StringBuilder(source.length + 64).append(source)
+        for (sheet in sheets) key.append('\u0000').append(sheet.third)
+        val cacheKey = key.toString()
+
+        val hit = Expander.cached(cacheKey) as? Prepared
+        val prepared: Prepared
+        if (hit != null) {
+            prepared = hit
+            rules = hit.rules
+        } else {
+            for (sheet in sheets) parseStyle(sheet.third, 1, sheet.first, sheet.second)
+            if (styleStart >= 0) parseStyle(lines.subList(styleStart, styleEnd).joinToString("\n"), styleStart + 1)
+            resolveVariables()
+            prepared = Prepared(rules, buildNodes(bodyStart, bodyEnd))
+            Expander.store(cacheKey, prepared)
+        }
+        emit(prepared.nodes, Scope(null, data))
         return ExpandedScreen(out.joinToString("\n"), outLines)
     }
 
     private fun parseStyle(text: String, firstLine: Int, file: String? = null, linkLine: Int = 0) {
-        val clean = commentRegex.replace(text) { m -> m.value.filter { it == '\n' } }
-        for (m in ruleRegex.findAll(clean)) {
+        val clean = Rx.commentRegex.replace(text) { m -> m.value.filter { it == '\n' } }
+        for (m in Rx.ruleRegex.findAll(clean)) {
             val selectorGroup = m.groups[1]!!
             val selectorText = selectorGroup.value
             val offset = selectorGroup.range.first + (selectorText.length - selectorText.trimStart().length)
@@ -208,9 +280,9 @@ private class ScreenExpander(
                     selector == ":root" -> {
                         for (d in declarations) if (d.first.startsWith("--")) variables[d.first] = d.second
                     }
-                    tagSelector.matches(selector) -> rules.add(Rule(KIND_TAG, selector.lowercase(), declarations, ruleOrder++, line, file, linkLine))
-                    classSelector.matches(selector) -> rules.add(Rule(KIND_CLASS, selector.substring(1), declarations, ruleOrder++, line, file, linkLine))
-                    idSelector.matches(selector) -> rules.add(Rule(KIND_ID, selector.substring(1), declarations, ruleOrder++, line, file, linkLine))
+                    Rx.tagSelector.matches(selector) -> (rules as ArrayList<Rule>).add(Rule(KIND_TAG, selector.lowercase(), declarations, ruleOrder++, line, file, linkLine))
+                    Rx.classSelector.matches(selector) -> (rules as ArrayList<Rule>).add(Rule(KIND_CLASS, selector.substring(1), declarations, ruleOrder++, line, file, linkLine))
+                    Rx.idSelector.matches(selector) -> (rules as ArrayList<Rule>).add(Rule(KIND_ID, selector.substring(1), declarations, ruleOrder++, line, file, linkLine))
                     else -> throw styleError("the selector '$selector' is not supported", line, selector, file, linkLine)
                 }
             }
@@ -218,7 +290,7 @@ private class ScreenExpander(
     }
 
     private fun substituteVars(value: String, rule: Rule): String =
-        varRegex.replace(value) { m ->
+        Rx.varRegex.replace(value) { m ->
             variables[m.groupValues[1]]
                 ?: throw styleError("the variable '${m.groupValues[1]}' is not defined in ':root'", rule.line, m.groupValues[1], rule.file, rule.linkLine)
         }
@@ -237,15 +309,15 @@ private class ScreenExpander(
     private fun parseControl(t: String, line: Int): Control? {
         if (t == "end") return Control("end", "")
         if (t == "else:") return Control("else", "")
-        if (elseSpaceRegex.matches(t)) throw err("write 'else:' without a space before ':'", line)
-        val keyword = keywordRegex.find(t)?.groupValues?.get(1) ?: return null
+        if (Rx.elseSpaceRegex.matches(t)) throw err("write 'else:' without a space before ':'", line)
+        val keyword = Rx.keywordRegex.find(t)?.groupValues?.get(1) ?: return null
         if (!t.endsWith(":")) return null
         val body = t.substring(0, t.length - 1)
         if (body.endsWith(" ") || body.endsWith("\t")) {
             throw err("write '${body.trimEnd()}:' without a space before ':'", line)
         }
         if (keyword == "for") {
-            val m = forRegex.find(t) ?: throw err("invalid 'for': '$t'", line, null, "write 'for item in list:'")
+            val m = Rx.forRegex.find(t) ?: throw err("invalid 'for': '$t'", line, null, "write 'for item in list:'")
             return Control("for", m.groupValues[2], m.groupValues[1])
         }
         val condition = body.substring(keyword.length).trim()
@@ -305,13 +377,14 @@ private class ScreenExpander(
         for (node in nodes) {
             when (node) {
                 is TextNode -> {
-                    out.add(renderLine(node.text, node.line, scope))
+                    val parts = node.parts ?: compileLine(node.text).also { node.parts = it }
+                    out.add(renderParts(parts, node.line, scope))
                     outLines.add(node.line)
                 }
                 is IfNode -> {
                     for (branch in node.branches) {
                         val condition = branch.condition
-                        if (condition == null || evaluate(condition, branch.line, scope)) {
+                        if (condition == null || evaluate(branch, condition, scope)) {
                             emit(branch.nodes, scope)
                             break
                         }
@@ -327,10 +400,12 @@ private class ScreenExpander(
         }
     }
 
-    private fun lookup(name: String, line: Int, scope: Scope): Any? {
-        val parts = name.split(".")
-        if (!scope.has(parts[0])) throw err("the name '$name' was not given by the program", line, parts[0])
-        var value: Any? = scope.get(parts[0])
+    private fun lookup(name: String, line: Int, scope: Scope): Any? =
+        lookupPath(name, name.split("."), line, scope)
+
+    private fun lookupPath(name: String, parts: List<String>, line: Int, scope: Scope): Any? {
+        var value: Any? = scope.find(parts[0])
+        if (value === MISSING) throw err("the name '$name' was not given by the program", line, parts[0])
         for (k in 1 until parts.size) {
             val part = parts[k]
             val current = value
@@ -353,7 +428,7 @@ private class ScreenExpander(
                 pos++
                 continue
             }
-            val m = tokenRegex.find(text, pos)
+            val m = Rx.tokenRegex.find(text, pos)
             if (m == null || m.range.first != pos) throw err("invalid condition: '$text'", line)
             tokens.add(m.value)
             pos = m.range.last + 1
@@ -361,8 +436,10 @@ private class ScreenExpander(
         return tokens
     }
 
-    private fun evaluate(condition: String, line: Int, scope: Scope): Boolean =
-        ConditionParser(tokenize(condition, line), condition, line, scope).run()
+    private fun evaluate(branch: Branch, condition: String, scope: Scope): Boolean {
+        val tokens = branch.tokens ?: tokenize(condition, branch.line).also { branch.tokens = it }
+        return ConditionParser(tokens, condition, branch.line, scope).run()
+    }
 
     private inner class ConditionParser(
         val tokens: List<String>,
@@ -420,7 +497,7 @@ private class ScreenExpander(
         fun parseCompare(): Boolean {
             val left = operand()
             val op = peek()
-            if (op != null && op in comparators) {
+            if (op != null && op in Rx.comparators) {
                 pos++
                 val right = operand()
                 return compare(op, left, right)
@@ -436,7 +513,7 @@ private class ScreenExpander(
             if (token == "false") return false
             if (token.startsWith("\"")) return token.substring(1, token.length - 1)
             if (token[0].isDigit() || token[0] == '-') return token.toDouble()
-            if (token == "and" || token == "or" || token == "not" || token == "(" || token == ")" || token in comparators) throw bad()
+            if (token == "and" || token == "or" || token == "not" || token == "(" || token == ")" || token in Rx.comparators) throw bad()
             return lookup(token, line, scope)
         }
 
@@ -485,40 +562,76 @@ private class ScreenExpander(
         return if (last.length > 1 && last.endsWith("s")) last.dropLast(1) else "item"
     }
 
-    private fun valueText(inner: String, line: Int, scope: Scope): String {
-        val name = inner.trim()
-        if (!nameRegex.matches(name)) {
-            throw err("arithmetic is not supported in '{$inner}'; give the program's result as a name", line)
+    private fun valText(v: Val, line: Int, scope: Scope): String {
+        if (!v.ok) {
+            throw err("arithmetic is not supported in '{${v.inner}}'; give the program's result as a name", line)
         }
-        return when (val v = lookup(name, line, scope)) {
+        val name = v.name
+        return when (val x = lookupPath(name, v.path, line, scope)) {
             null -> ""
-            is String -> escapeHtml(v)
-            is Boolean -> v.toString()
-            is Number -> formatNumber(v)
+            is String -> escapeHtml(x)
+            is Boolean -> x.toString()
+            is Number -> formatNumber(x)
             is List<*> -> throw err("'{$name}' is a list; use 'for ${singular(name)} in $name:'", line, name)
             is Map<*, *> -> throw err("'{$name}' is a map; use a name inside it, like '{$name.field}'", line, name)
-            else -> escapeHtml(v.toString())
+            else -> escapeHtml(x.toString())
         }
     }
 
-    private fun renderText(text: String, line: Int, scope: Scope): String =
-        braceRegex.replace(text) { m ->
-            when (m.value) {
-                "\\{" -> "{"
-                "\\}" -> "}"
-                else -> valueText(m.groupValues[1], line, scope)
-            }
+    private fun mergeLits(list: List<Part>): Array<Part> {
+        val out = ArrayList<Part>(list.size)
+        for (p in list) {
+            val last = out.lastOrNull()
+            if (p is Lit && last is Lit) out[out.size - 1] = Lit(last.s + p.s) else out.add(p)
         }
+        return out.toTypedArray()
+    }
 
-    private fun renderLine(text: String, line: Int, scope: Scope): String {
-        val sb = StringBuilder()
+    private fun compileText(text: String, list: MutableList<Part>) {
         var pos = 0
-        for (m in tagRegex.findAll(text)) {
-            sb.append(renderText(text.substring(pos, m.range.first), line, scope))
-            sb.append(renderTag(m.value, line, scope))
+        for (m in Rx.braceRegex.findAll(text)) {
+            if (m.range.first > pos) list.add(Lit(text.substring(pos, m.range.first)))
+            when (m.value) {
+                "\\{" -> list.add(Lit("{"))
+                "\\}" -> list.add(Lit("}"))
+                else -> list.add(Val(m.groupValues[1]))
+            }
             pos = m.range.last + 1
         }
-        sb.append(renderText(text.substring(pos), line, scope))
+        if (pos < text.length) list.add(Lit(text.substring(pos)))
+    }
+
+    private fun compileValue(text: String): Array<Part> {
+        val list = ArrayList<Part>()
+        compileText(text, list)
+        return mergeLits(list)
+    }
+
+    private fun compileLine(text: String): Array<Part> {
+        val list = ArrayList<Part>()
+        var pos = 0
+        for (m in Rx.tagRegex.findAll(text)) {
+            compileText(text.substring(pos, m.range.first), list)
+            list.add(compileTag(m.value))
+            pos = m.range.last + 1
+        }
+        compileText(text.substring(pos), list)
+        return mergeLits(list)
+    }
+
+    private fun renderParts(parts: Array<Part>, line: Int, scope: Scope): String {
+        if (parts.size == 1) {
+            val only = parts[0]
+            if (only is Lit) return only.s
+        }
+        val sb = StringBuilder()
+        for (p in parts) {
+            when (p) {
+                is Lit -> sb.append(p.s)
+                is Val -> sb.append(valText(p, line, scope))
+                is DynTag -> sb.append(renderDyn(p, line, scope))
+            }
+        }
         return sb.toString()
     }
 
@@ -535,64 +648,74 @@ private class ScreenExpander(
         return parts.joinToString("; ")
     }
 
-    private fun renderTag(tag: String, line: Int, scope: Scope): String {
-        if (tag.startsWith("<!")) return tag
+    private fun compileTag(tag: String): Part {
+        if (tag.startsWith("<!")) return Lit(tag)
         if (tag.startsWith("</")) {
             val closing = tag.substring(2, tag.length - 1).trim().lowercase()
-            return if (closing == "body") "</div>" else tag
+            return Lit(if (closing == "body") "</div>" else tag)
         }
-        val nameMatch = tagNameRegex.find(tag) ?: return tag
+        val nameMatch = Rx.tagNameRegex.find(tag) ?: return Lit(tag)
         val name = nameMatch.groupValues[1]
         val lower = name.lowercase()
         val selfClose = tag.endsWith("/>")
         val inner = tag.substring(nameMatch.range.last + 1, tag.length - (if (selfClose) 2 else 1))
 
-        val result = ArrayList<Attr>()
-        var inline = ""
+        val attrs = ArrayList<AttrPlan>()
         var classes: List<String> = emptyList()
         var id: String? = null
-        for (a in attrRegex.findAll(inner)) {
+        var anyBrace = false
+        for (a in Rx.attrRegex.findAll(inner)) {
             val key = a.groupValues[1].lowercase()
-            var value: String? = a.groups[2]?.value ?: a.groups[3]?.value ?: a.groups[4]?.value
-            if (value != null && value.contains("{")) {
-                if (key == "id" || key == "class") throw err("markup: '$key' cannot be generated by value", line, key)
-                val single = singleValueRegex.find(value.trim())
-                if ((key == "checked" || key == "disabled" || key == "readonly") && single != null) {
-                    val flag = lookup(single.groupValues[1], line, scope)
-                    if (flag == true) result.add(Attr(a.groupValues[1], "true"))
+            val value: String? = a.groups[2]?.value ?: a.groups[3]?.value ?: a.groups[4]?.value
+            val brace = value != null && value.contains("{")
+            var single: String? = null
+            var textParts: Array<Part>? = null
+            if (brace) {
+                anyBrace = true
+                single = Rx.singleValueRegex.find(value!!.trim())?.groupValues?.get(1)
+                textParts = compileValue(value)
+            } else {
+                if (key == "class") classes = (value ?: "").split(" ").filter { it.isNotEmpty() }
+                if (key == "id") id = value
+            }
+            attrs.add(AttrPlan(a.groupValues[1], key, value, brace, single, textParts))
+        }
+        val plan = DynTag(name, lower, selfClose, styleFor(lower, classes, id), attrs.toTypedArray())
+        return if (anyBrace) plan else Lit(renderDyn(plan, 0, EMPTY_SCOPE))
+    }
+
+    private fun renderDyn(t: DynTag, line: Int, scope: Scope): String {
+        val result = ArrayList<Attr>(t.attrs.size + 1)
+        var inline = ""
+        for (a in t.attrs) {
+            var value: String? = a.value
+            if (a.brace) {
+                if (a.key == "id" || a.key == "class") throw err("markup: '${a.key}' cannot be generated by value", line, a.key)
+                val single = a.single
+                if ((a.key == "checked" || a.key == "disabled" || a.key == "readonly") && single != null) {
+                    val flag = lookup(single, line, scope)
+                    if (flag == true) result.add(Attr(a.orig, "true"))
                     continue
                 }
-                value = renderText(value, line, scope)
+                value = renderParts(a.textParts!!, line, scope)
             }
-            when (key) {
-                "style" -> inline = value ?: ""
-                "class" -> {
-                    classes = (value ?: "").split(" ").filter { it.isNotEmpty() }
-                    result.add(Attr(a.groupValues[1], value))
-                }
-                "id" -> {
-                    id = value
-                    result.add(Attr(a.groupValues[1], value))
-                }
-                else -> result.add(Attr(a.groupValues[1], value))
-            }
+            if (a.key == "style") inline = value ?: "" else result.add(Attr(a.orig, value))
         }
 
         val parts = ArrayList<String>()
-        val ruleStyle = styleFor(lower, classes, id)
-        if (ruleStyle.isNotEmpty()) parts.add(ruleStyle)
+        if (t.ruleStyle.isNotEmpty()) parts.add(t.ruleStyle)
         val inlineStyle = inline.trim().trimEnd(';').trim()
         if (inlineStyle.isNotEmpty()) parts.add(inlineStyle)
         if (parts.isNotEmpty()) result.add(Attr("style", parts.joinToString("; ")))
 
         val sb = StringBuilder("<")
-        sb.append(if (lower == "body") "div" else name)
+        sb.append(if (t.lower == "body") "div" else t.name)
         for (a in result) {
             sb.append(' ').append(a.key)
             val v = a.value
             if (v != null) sb.append("=\"").append(v.replace("\"", "&quot;")).append('"')
         }
-        sb.append(if (selfClose) " />" else ">")
+        sb.append(if (t.selfClose) " />" else ">")
         return sb.toString()
     }
 }
