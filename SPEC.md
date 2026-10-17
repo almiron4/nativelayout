@@ -1,38 +1,12 @@
-<div align="center">
+# nativelayout - Specification
 
-<h1>nativelayout</h1>
-
-<p><strong>Specification</strong></p>
-
-<p>Version 0.1.0</p>
-
-</div>
-
-<br>
-
-## Contents
-
-1. [Idea](#1-idea)
-2. [The file](#2-the-file)
-3. [How it works](#3-how-it-works)
-4. [Style](#4-style)
-5. [Body](#5-body)
-6. [Values and control](#6-values-and-control)
-7. [Data](#7-data)
-8. [The program side](#8-the-program-side)
-9. [render](#9-render)
-10. [Errors](#10-errors)
-11. [Targets](#11-targets)
-12. [Examples](#12-examples)
-13. [Good practices](#13-good-practices)
+Status: draft v0.2. It replaces the draft where the markup lived inside Kotlin code.
 
 ---
 
 ## 1. Idea
 
-<p align="justify">
 A screen is written once, in a plain text file that looks like HTML. The same file works in any language: each language only supplies the program side and the part that draws native components.
-</p>
 
 - The file is HTML you already know, plus three additions: `{value}`, `if` / `for` lines, and a `<style>` with simple selectors.
 - It has no functions, no classes and no variables. The logic stays outside, in each language.
@@ -60,14 +34,14 @@ A screen is written once, in a plain text file that looks like HTML. The same fi
 ```
 
 1. The first thing in the file is `<nativelayout>` and the last is `</nativelayout>`.
-2. Between them: zero or more `<link rel="stylesheet" href="...">`, then an optional `<style>`, then exactly one `<body>`. Nothing else.
-3. Style can live in `.css` files (via `<link>`), inline in the file's own `<style>`, or both. The cascade in section 4.1 applies across all of them: `<link>` rules apply in the order the tags appear, and the file's own `<style>` is evaluated last, so it wins at equal weight.
+2. Between them: zero or more `<link rel="stylesheet" href="...">`, then exactly one `<body>`. Nothing else.
+3. `<style>` is not allowed in the `.nl`. All style lives in `.css` files, with the rules of section 4.
 4. `<body>` is the root of the screen. Everything visible goes inside it.
-5. Comments are `<!-- ... -->` in the `.nl`, and `/* ... */` in CSS.
+5. Comments are `<!-- ... -->` in the `.nl`, and `/* ... */` in the `.css`.
 6. `<script>` is not allowed.
-7. The path in `href` is relative to the `.nl`. A linked file is plain CSS: the same selectors and properties as section 4, no `{value}` and no control lines. It cannot link another file.
+7. The path in `href` is relative to the `.nl`. The cascade follows the order of the `<link>` tags: at the same weight, the later rule wins.
 8. Files are UTF-8.
-9. One screen is one `.nl` file.
+9. One screen is one `.nl`. The extension is `.nl` (proposal).
 
 ---
 
@@ -80,12 +54,10 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 ```
 
 - **Expander:** reads the file once. On each `render` it evaluates the control lines and the `{values}` with the data, writes the result of the selectors into the `style` of each element, and turns `<body>` into the root container. Its output is plain HTML with inline styles and no control.
-- **Engine:** HTML parser, style reader, neutral tree and diff.
-- **Host:** creates the native components.
+- **Engine:** HTML parser, style reader, neutral tree and diff. In Kotlin it already exists and does not change.
+- **Host:** creates the native components (Android `View` objects).
 
-<p align="justify">
-For each language there is an Expander, an Engine, a host and the program verbs (section 8). The <code>.nl</code> file is the same for all of them.
-</p>
+For each language there is an expander, an engine, a host and the program verbs (section 8). The `.nl` file is the same for all of them.
 
 ---
 
@@ -102,13 +74,9 @@ For each language there is an Expander, an Engine, a host and the program verbs 
 | `#name` | the element with that id |
 | `h1, h2` | a list, separated by commas |
 
-<p align="justify">
-Not supported in v1: <code>a b</code>, <code>a &gt; b</code>, <code>:hover</code> and other pseudo-classes, attribute selectors, <code>@media</code>. They are an error. <code>!important</code> is ignored.
-</p>
+Not supported in v1: `a b`, `a > b`, `:hover` and other pseudo-classes, attribute selectors, `@media`. They are an error. `!important` is ignored.
 
-<p align="justify">
-<strong>Cascade.</strong> The weight is: tag, then class, then id, then the <code>style="..."</code> attribute, each overriding the one before. At the same weight, the later rule wins (see section 2.3 for how <code>&lt;link&gt;</code> and the file's own <code>&lt;style&gt;</code> order against each other).
-</p>
+**Cascade.** The weight is: tag, then class, then id, then the `style="..."` attribute, each overriding the one before. At the same weight, the later rule wins.
 
 ### 4.2 Variables
 
@@ -117,9 +85,7 @@ Not supported in v1: <code>a b</code>, <code>a &gt; b</code>, <code>:hover</code
 body  { background: var(--bg); }
 ```
 
-<p align="justify">
-A variable that is not declared in <code>:root</code> is an error.
-</p>
+A variable that is not declared in `:root` is an error.
 
 ### 4.3 Properties
 
@@ -148,13 +114,9 @@ A variable that is not declared in <code>:root</code> is an error.
 | `img` | image |
 | `ul`, `li` | list; each `li` gets a bullet |
 
-<p align="justify">
 A tag outside this list is an error.
-</p>
 
-<p align="justify">
-The whole screen scrolls: the root sits in one vertical scroll container. A long list scrolls the screen, and a bar pinned to the bottom is not possible in v1.
-</p>
+The whole screen scrolls: the root sits in one vertical scroll container. A long list scrolls the screen (for very long lists, see `virtual` in section 5.3), and a bar pinned to the bottom is not possible in v1.
 
 ### 5.2 Attributes
 
@@ -170,11 +132,77 @@ The whole screen scrolls: the root sits in one vertical scroll container. A long
 | `disabled`, `readonly` | blocks the element |
 | `src`, `alt` | image: a `data:` URI or a name resolved by the host; no network in v1 |
 | `rows` | lines of a `textarea` |
+| `key` | stable name of an item among its siblings (section 5.3) |
+| `virtual` | marks a container as a long list (section 5.3) |
 
 - `checked`, `disabled` and `readonly` count when present, whatever their text. With a value (`checked="{done}"`) the attribute is written only when the value is `true`.
 - `id` and `class` cannot have a value: `id="{x}"` is an error. A class changes with `if` and `else`, writing each variant in full.
 - An `id` is unique in the screen.
+- `virtual` counts when present, whatever its text.
+- `key` accepts values: `key="{task.id}"`.
 - A tap on an element that has an `id` or a class wakes the program (section 9).
+
+### 5.3 Lists: `key` and `virtual`
+
+Two attributes help with lists written with `for`. They are independent: `key` helps every list that changes, `virtual` is for very long lists. A long list usually uses both.
+
+#### `key`: the identity of an item
+
+`key` gives an element a stable name among its siblings. The engine uses it to know that, between two renders, an item is still the same item.
+
+```html
+for task in tasks:
+    <div class="card" key="{task.id}">
+        <p>{task.title}</p>
+    </div>
+end
+```
+
+- The value is text. Use something that identifies the item and never changes: an id from the data, never the position. `{ }` is allowed.
+- It must be unique among siblings. A repeated key is an error.
+- Without `key`, siblings are matched by position (first with first, second with second).
+- With `key`, an item is matched by its key, wherever it is. Adding or removing an item creates or removes only that item and leaves the others alone. Without `key`, adding an item at the start looks like every item changed.
+- What the user typed in a field inside an item stays with that item, because it is the same item.
+- Changing the order of items that already exist rebuilds that container, so text typed in its fields is lost.
+- An element with an `id` is already identified by it and does not need a `key`. `key` is for repeated elements, which cannot have an `id`.
+- A normal container may mix children with and without `key`.
+
+#### `virtual`: long lists
+
+`virtual` marks a container as a long list. Without it, every item becomes a native view, even the ones far off screen, and with thousands of items that is heavy. With it, only the items on screen (plus about one screen above and one below) have a native view. The others are created when you scroll near them and discarded when you scroll away.
+
+```html
+<div virtual style="gap: 1rem">
+    for p in products:
+        <div class="item" key="{p.id}">
+            <p class="name">{p.name}</p>
+            <p class="price">{p.price}</p>
+        </div>
+    end
+</div>
+```
+
+Everything else works as in any list. A tap on an item, `click(".item")` and `clickIndex()` behave the same, and the index counts over the whole list, not only over the items on screen. In a `virtual` list the `key` also decides which views are kept when the data changes: an item that did not change keeps its view.
+
+Rules:
+
+| Rule | Why |
+|---|---|
+| `virtual` goes on a container (`div`) that holds only the `for` | the items are the whole content of the container |
+| Every item (direct child) has a `key` | the engine needs it to keep the views of the items that did not change |
+| No loose text and no other elements next to the `for` | they would be items without a `key`, which is an error |
+| Without `virtual`, nothing changes | the list is a normal container |
+| Prefer no `id` and no `class` on the container; use `style="..."` | a tap on an element with an `id` or a class wakes the program, also a tap on the empty space of the list |
+
+The items are stacked in a column: a `virtual` list is always vertical, and `flex-direction` on it is ignored. `gap`, `padding`, `margin` and `background` of the container work as usual.
+
+Limits:
+
+- A `virtual` list does not scroll by itself: it takes the full height of its items and the screen scrolls (section 5.1). The height of items not shown yet is estimated from the ones already measured, so the scroll position can adjust a little while you scroll.
+- The views of items off screen are discarded, so what the user typed in a field (or the state of a checkbox) inside an item is lost when it scrolls away. For items with fields, keep the value in the program's data and give it back with `value="{x.text}"` or `checked="{x.done}"`.
+- `virtual` saves native views, not the work of the Expander and the Engine: they still read every item on each `render`. That work runs off the UI thread, so the screen does not freeze, but its cost grows with the list. For tens of thousands of items, hand the program one page of the data at a time.
+- On a short list `virtual` brings no gain: leave it out.
+- Only containers use `virtual`. On other tags it has no effect.
 
 ---
 
@@ -182,25 +210,18 @@ The whole screen scrolls: the root sits in one vertical scroll container. A long
 
 ### 6.1 Values: `{name}`
 
-<p align="justify">
-Shows the value of a name, as text and escaped. It works in text and in attribute values (not <code>id</code> or <code>class</code>), including the <code>style</code> attribute.
-</p>
+Shows the value of a name, as text and escaped. It works in text and in attribute values (not `id` or `class`).
 
 ```html
 <p>{task.title} - {pending} pending</p>
 <input id="title" value="{draft}">
-<div class="fill" style="width: {percent}%"></div>
 ```
 
-<p align="justify">
-Only names, with or without dots, are allowed inside <code>{ }</code>: <code>{pending}</code>, <code>{task.title}</code>. A literal brace is written <code>\{</code> and <code>\}</code>. Inside <code>&lt;style&gt;</code> the braces are CSS and are not values.
-</p>
+Only names with dots are allowed inside `{ }`: `{pending}`, `{task.title}`. A literal brace is written `\{` and `\}`. Inside `<style>` the braces are CSS and are not values.
 
 ### 6.2 Control lines
 
-<p align="justify">
 A line is control when, after trimming, it is exactly one of these:
-</p>
 
 ```
 if condition:
@@ -234,51 +255,143 @@ operand   := name | number | "text" | true | false
 
 ## 7. Data
 
-<p align="justify">
-The program hands the data to <code>render</code>. The data is plain, like JSON: text, number, bool, list and map. A name in the file is looked up in it; a name that is missing is an error.
-</p>
+The program hands the data to `render`. The data is plain, like JSON: text, number, bool, list and map. A name in the file is looked up in it; a name that is missing is an error.
 
 ```
 pending = 2
 tasks   = [ { title: "Buy bread", done: false }, { title: "Call Ana", done: true } ]
 ```
 
-<p align="justify">
-Kotlin uses <code>Map</code> and <code>List</code>, Python uses <code>dict</code> and <code>list</code>, so the same file reads the same data in any language. A name that holds a list or a map cannot be shown with <code>{ }</code>: use <code>for</code> or a name inside it.
-</p>
+Kotlin uses `Map` and `List`, Python uses `dict` and `list`, so the same file reads the same data in any language. A name that holds a list or a map cannot be shown with `{ }`: use `for` or a name inside it.
 
 ---
 
 ## 8. The program side
 
-<p align="justify">
-The file only describes. The logic (state, taps) is written in each language, with the same verbs:
-</p>
+The file only describes. The logic (state, taps) is written in each language, with the same verbs. Each screen has its own logic file next to its `.nl`, and the entry point (`MainActivity`, `main.py`) only prepares and starts the first screen.
+
+```
+app/
+  MainActivity.kt        (only prepares)
+  login.nl   login.css   LoginScreen.kt
+  panel.nl   panel.css   PanelScreen.kt
+```
+
+### 8.1 The screen function
+
+A screen is one function. It holds the state, reads the taps and returns what to show. The engine calls it, shows what it returns, waits for a tap and calls it again, until the window closes.
+
+JS (illustrative):
+
+```js
+export default function PanelScreen() {
+  const s = state({ pending: 0 })
+
+  if (click("add")) s.pending++
+
+  return view("panel.nl", s)
+}
+```
+
+Kotlin:
+
+```kotlin
+fun NativeView.PanelScreen(): Page {
+    val s = state { mutableMapOf<String, Any?>("pending" to 0) }
+
+    if (click("add")) s["pending"] = (s["pending"] as Int) + 1
+
+    return view("panel.nl", s)
+}
+```
+
+Python (illustrative, not built yet):
+
+```python
+def panel_screen():
+    s = state({"pending": 0})
+
+    if click("add"):
+        s["pending"] += 1
+
+    return view("panel.nl", s)
+```
+
+Going to another screen:
+
+```kotlin
+fun NativeView.LoginScreen(): Page {
+    val s = state { mutableMapOf<String, Any?>("failed" to false) }
+
+    if (click("login")) {
+        if (value("pass") == "1234") return go { PanelScreen() }
+        s["failed"] = true
+    }
+
+    return view("login.nl", s)
+}
+```
+
+### 8.2 Verbs
 
 | Verb | Python style | Does |
 |---|---|---|
-| `screen(name)` | `screen` | loads a `.nl` file and returns a screen |
-| `render(screen, data)` | `render` | shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
+| `state(initial)` | `state` | the state of the screen: the same object on every call, a new one after `go` |
+| `view(screen, data)` | `view` | returns the screen to show, with its data |
+| `go(function)` | `go` | returns a jump to another screen function |
 | `click(target)` | `click` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | `click_index` | position, from 0, of the tapped element of the class |
 | `value(id)` | `value` | text of a field, `""` if the id does not exist |
 | `checked(id)` | `checked` | state of a checkbox, `false` if it does not exist |
 | `setValue(id, text)` | `set_value` | fills or clears a field (`"1"` / `"0"` for a checkbox) |
 | `save(key, text)`, `load(key)`, `exists(key)`, `delete(key)` | same | store text on the device |
-| `close()` | `close` | releases the host |
+| `render(screen, data)` | `render` | base layer (section 8.5): shows the screen, waits for a tap, returns `true`; `false` when the window closes |
 
-### 8.1 Kotlin (Android)
+### 8.3 Rules
 
-<p align="justify">
-<code>NativeView(context, area, loader) { ... }</code> creates the view and runs the program block, which is a suspend lambda: <code>render</code> suspends until the next tap.
-</p>
+- The function is called again after every tap. In the first call there is no tap yet, so `click` is `false`.
+- `state(initial)` gives the same object on every call, so what changed survives. Call it at the top, always in the same order, never inside `if` or `for`.
+- The data given to `view` is plain, as in section 7.
+- `go(function)` leaves the current screen. Its state is dropped, the tree is built from scratch (section 9, point 6) and the new function is called at once, with no tap yet. More than 8 `go` in a row without a `view` is an error.
+- A screen file is read once and kept, so `view` is cheap on every call.
+- Coming back to a screen starts it again with a new state. To keep something between screens, use `save` and `load`.
 
-| Parameter | Meaning |
-|---|---|
-| `context` | the Android context |
-| `area` | the `FrameLayout` where the screen is drawn |
-| `loader` | returns the text of a file by name, or `null`; used for `.nl` files and linked `.css` |
-| block | the program: state, `render` loop and taps |
+Examples of `go`:
+
+A loop that never shows a screen is an error. Here each function jumps to the other, so at the ninth jump in a row the engine stops with `go: too many jumps without showing a screen`. A function that always jumps to itself fails the same way.
+
+```kotlin
+fun NativeView.AScreen(): Page = go { BScreen() }
+fun NativeView.BScreen(): Page = go { AScreen() }
+```
+
+A few jumps in a row are fine. Every `view` resets the count, so up to 8 jumps can come before a screen is shown:
+
+```kotlin
+fun NativeView.SplashScreen(): Page {
+    if (!exists("token")) return go { LoginScreen() }
+    return go { HomeScreen() }
+}
+```
+
+The usual case is a jump that depends on a tap:
+
+```kotlin
+fun NativeView.LoginScreen(): Page {
+    val s = state { mutableMapOf<String, Any?>("failed" to false) }
+
+    if (click("login")) {
+        if (value("pass") == "1234") return go { HomeScreen() }
+        s["failed"] = true
+    }
+
+    return view("login.nl", s)
+}
+```
+
+### 8.4 The entry point
+
+The entry point creates the area and the loader and names the first screen function. It has no logic. The parameter names are provisional; use named arguments.
 
 ```kotlin
 class MainActivity : Activity() {
@@ -287,14 +400,39 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val area = FrameLayout(this)
+        val area = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor("#0D1117"))
+        }
         setContentView(area)
 
         ui = NativeView(
-            this,
-            area,
-            { name -> runCatching { assets.open(name).bufferedReader().use { it.readText() } }.getOrNull() }
-        ) {
+            context = this,
+            area = area,
+            loader = { name -> runCatching { assets.open(name).bufferedReader().use { it.readText() } }.getOrNull() },
+            app = { LoginScreen() }
+        )
+    }
+
+    override fun onDestroy() {
+        ui.close()
+        super.onDestroy()
+    }
+}
+```
+
+### 8.5 Base layer: the `render` loop
+
+The screen function runs on top of this loop, which stays available for programs that want to control it themselves.
+
+Kotlin (Android):
+
+```kotlin
+class MainActivity : Activity() {
+    private lateinit var ui: NativeView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        ui = NativeView(this) {
             val panel = screen("panel.nl")
             var pending = 0
 
@@ -311,7 +449,7 @@ class MainActivity : Activity() {
 }
 ```
 
-### 8.2 Python (illustrative, not built yet)
+Python (illustrative, not built yet):
 
 ```python
 with NativeView(app) as ui:
@@ -328,7 +466,7 @@ with NativeView(app) as ui:
 ## 9. render
 
 1. The first call builds the native components.
-2. The next calls compare with the previous screen and change only what differs. The text typed in a field with an `id` is kept.
+2. The next calls compare with the previous screen and change only what differs. Elements are matched by `id`, by `key` or by position (section 5.3). The text typed in a field with an `id` is kept.
 3. `value` and `checked` in the file are default values: they are applied when the field is created and again only when the value in the data is different from the previous `render`. What the user typed in between is not touched.
 4. The program waits inside `render` until there is a tap on an element with an `id` or a class. Typing does not wake it.
 5. Each tap goes into a queue and each `render` consumes one, in order.
@@ -339,22 +477,18 @@ with NativeView(app) as ui:
 
 ## 10. Errors
 
-<p align="justify">
-Same format as the other messages, with the line of the <code>.nl</code> file. On Android the message is shown on screen, in red, in place of the screen.
-</p>
+Same format as the other messages, with the line of the `.nl` file.
 
 | Situation | Message |
 |---|---|
 | Identity missing | `the file must start with <nativelayout> and end with </nativelayout>` |
-| `<link>` not before `<body>` | `a <link> must come before <body>` |
-| `<link>` missing rel/href | `markup: <link> needs rel="stylesheet" and a href` |
-| Linked file not found | `style: the file 'theme.css' was not found` |
-| Linked file imports another | `style: a style file cannot import another file` |
 | Unknown selector | `style: the selector 'ul li' is not supported (line 8)` |
 | Undefined variable | `style: the variable '--bg' is not defined in ':root'` |
 | Unsupported tag | `markup: the tag 'table' is not supported (line 18)` |
 | `<script>` | `markup: <script> is not allowed` |
 | Repeated id | `markup: duplicate id 'add'` |
+| Repeated key | `markup: duplicate key 'p1'` |
+| Item without key in a `virtual` container | `markup: every child of a 'virtual' container needs a key (line 12)` |
 | Id or class with a value | `markup: 'id' cannot be generated by value` |
 | `end` without a block | `'end' has no matching 'if' or 'for' (line 20)` |
 | Block not closed | `the 'if' opened on line 12 is never closed with 'end'` |
@@ -365,41 +499,23 @@ Same format as the other messages, with the line of the <code>.nl</code> file. O
 | Bad condition | `invalid condition: 'pending ==' (line 12)` |
 | Arithmetic | `arithmetic is not supported in '{n + 1}'; give the program's result as a name` |
 | `render` with another type | `render: expected a screen` |
+| Too many jumps | `go: too many jumps without showing a screen` |
 
 ---
 
 ## 11. Targets
 
-<p align="justify">
-The <code>.nl</code> file is the same everywhere. Each target needs an Expander, an Engine and a native host.
-</p>
-
-| Language | Target | Status |
+| Target | Status | Notes (proposal) |
 |---|---|---|
-| Kotlin | Android (native views) | implemented: Expander, Engine, host and the verbs of section 8 |
-| Java | Android (native views) | planned |
-| Python | Kivy | planned; flex and rounded corners drawn by hand |
-| Python | Tkinter | planned; no flex and no rounded corners: gap and radius ignored with a warning |
-| Swift | iOS (UIKit) | planned |
-| JavaScript / TypeScript | React Native | planned |
-| Dart | Flutter | planned |
-| C# | .NET MAUI | planned |
-| Java | Swing / JavaFX (desktop) | planned |
-| C++ | Qt | planned |
-| Rust | desktop | planned |
-| Go | desktop | planned |
+| Android, Kotlin | engine and host exist | needs the expander and the verbs |
+| Python, Kivy | planned | flex and rounded corners drawn by hand |
+| Python, Tkinter | planned | no flex and no rounded corners: gap and radius ignored with a warning |
 
-<p align="justify">
 Each target supports a subset of the style. What a target cannot draw gives a warning, never an error.
-</p>
 
 ---
 
 ## 12. Examples
-
-<p align="justify">
-Each example is a <code>.nl</code> file followed by the program side in Kotlin. A complete, runnable project is in <a href="android/examples/tasks/"><code>android/examples/tasks/</code></a>.
-</p>
 
 ### 12.1 Counter (basics)
 
@@ -425,10 +541,10 @@ Each example is a <code>.nl</code> file followed by the program side in Kotlin. 
 ```
 
 ```kotlin
-val counter = screen("counter.nl")
+val screen = screen("counter.nl")
 var n = 0
 
-while (render(counter, mapOf("n" to n, "twice" to n * 2))) {
+while (render(screen, mapOf("n" to n, "twice" to n * 2))) {
     if (click("plus")) n++
     if (click("minus")) n--
 }
@@ -466,7 +582,6 @@ while (render(counter, mapOf("n" to n, "twice" to n * 2))) {
 ```
 
 ```kotlin
-val login = screen("login.nl")
 var signed = false
 var failed = false
 var user = ""
@@ -522,7 +637,6 @@ while (render(login, mapOf("signed" to signed, "failed" to failed, "user" to use
 ```
 
 ```kotlin
-val panel = screen("tasks.nl")
 val tasks = mutableListOf<MutableMap<String, Any>>(
     mutableMapOf("title" to "Test nativelayout", "done" to true),
     mutableMapOf("title" to "Write the documentation", "done" to false)
@@ -633,8 +747,7 @@ if (click("next")) { index++; picked = -1 }
 ```
 
 ```kotlin
-val settings = screen("settings.nl")
-var name = load("name") ?: ""
+var name = load("name")
 var dark = load("dark") == "1"
 var notify = if (exists("notify")) load("notify") == "1" else true
 var saved = false
@@ -657,6 +770,56 @@ while (render(settings, mapOf("name" to name, "dark" to dark, "notify" to notify
 }
 ```
 
+### 12.6 Large list (`key` and `virtual`)
+
+```html
+<nativelayout>
+
+<style>
+    body   { flex: 1; padding: 1rem; gap: 1rem; }
+    .muted { color: #6B7280; }
+    .item  { flex-direction: row; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 1rem; background: #F3EDF7; }
+    .grow  { flex: 1; }
+    .name  { font-weight: bold; }
+</style>
+
+<body>
+    <h1>Products</h1>
+    <p class="muted">{total} items</p>
+
+    <div virtual style="gap: 0.5rem">
+        for p in products:
+            <div class="item" key="{p.id}">
+                <div class="grow">
+                    <p class="name">{p.name}</p>
+                    <p class="muted">{p.price}</p>
+                </div>
+                if p.picked:
+                    <p>Picked</p>
+                end
+            </div>
+        end
+    </div>
+</body>
+
+</nativelayout>
+```
+
+```kotlin
+fun products(picked: Int) = (1..2000).map { i ->
+    mapOf("id" to i, "name" to "Item $i", "price" to "%.2f".format(i * 1.07), "picked" to (i - 1 == picked))
+}
+
+var picked = -1
+val screen = screen("products.nl")
+
+while (render(screen, mapOf("total" to 2000, "products" to products(picked)))) {
+    if (click(".item")) picked = clickIndex()
+}
+```
+
+Tapping an item changes only that item: the others keep their view.
+
 ---
 
 ## 13. Good practices
@@ -666,4 +829,26 @@ while (render(settings, mapOf("name" to name, "dark" to dark, "notify" to notify
 - Put colors in `:root` and use `var(--name)`, so a theme change is one edit.
 - Write one variant per state (`.right`, `.wrong`) instead of computing a class.
 - Give a field a `value="{name}"` to open it with a stored text.
-- Keep the data given to `render` in sync with what you tap: when a list is filtered, index into the filtered list that was rendered, not into the full one.
+- Put a `key` on every repeated element, with something that never changes (an id), never the position.
+- Use `virtual` only for long lists, hundreds of items or more. A short list is simpler as a normal container and keeps what the user typed.
+- Keep `id` and `class` off a `virtual` container. Style it with `style="..."`.
+
+---
+
+## 14. Open decisions
+
+1. **`elif`.** Chosen over `else if`, because it is one word, as in Python. Confirm.
+2. **Extension.** `.nl` is a proposal.
+3. **Reuse.** v1 has no components, so a card cannot be shared between two screens. A tag such as `<include src="card.nl">` is not designed.
+4. **Engine per language.** The expander ends in HTML with inline styles, and each language then needs an engine that reads it (parser, style, diff). Either it is ported to each language, or one shared engine is used with bindings.
+5. **Loading.** How `screen("panel.nl")` finds the file: Android assets, resources, or embedded at build time.
+6. **Index in loops.** `for i, item in list:` is not in v1.
+7. **Arithmetic.** Not in v1. The program calculates.
+8. **Style classes and taps.** A tap on any element with an id or a class wakes `render`, so a tap on a text that only has a style class redraws the screen for nothing. Harmless, but classes for style and for events could be separated.
+9. **Selectors.** Only simple ones in v1. A descendant selector (`.card p`) could come later.
+10. **List items.** Settled: the diff matches elements by `id`, by `key` or by position (section 5.3). Reordering existing items still rebuilds the container; a finer move is not designed.
+11. **Scrolling.** The root is the only scroll container. A `virtual` list scrolls with the screen; it is not a second one.
+12. **Values in attributes.** `{ }` is allowed in attribute values except `id` and `class`. Confirm.
+13. **Units.** `rem` scales with the font scale of the system, also in padding and gaps. Confirm.
+14. **Virtual lists.** Vertical only, and the Expander still reads every item. A lazy expander that reads only the visible items is not designed, nor is a horizontal `virtual` list. Text typed in an item that scrolls away is not kept.
+15. **State slots.** `state` is matched by call order, like hooks, so it cannot be called inside `if` or `for`. A named form, `state("name", initial)`, is not designed.
