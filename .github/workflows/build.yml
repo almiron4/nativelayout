@@ -57,7 +57,7 @@ jobs:
           APP="$RUNNER_TEMP/tasks-app"
           SRC="$GITHUB_WORKSPACE/android/examples/tasks"
           AGP=$(sed -n 's/.*com.android.application") version "\([^"]*\)".*/\1/p' android/build.gradle.kts | head -n1)
-          KOTLIN=$(sed -n 's/.*kotlin("android") version "\([^"]*\)".*/\1/p' android/build.gradle.kts | head -n1)
+          KOTLIN=$(sed -n 's/.*org.jetbrains.kotlin.android") version "\([^"]*\)".*/\1/p' android/build.gradle.kts | head -n1)
           LIB=$(sed -n 's/^version = "\(.*\)"/\1/p' android/android/build.gradle.kts | head -n1)
 
           mkdir -p "$APP/app/src/main/assets" \
