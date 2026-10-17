@@ -3,7 +3,7 @@ package com.example.testelayou
 import android.app.Activity
 import android.os.Bundle
 import android.widget.FrameLayout
-import co.adilson889.nativelayout.android.NativeView
+import nativelayout.NativeView
 
 class Task(var title: String, var done: Boolean)
 
