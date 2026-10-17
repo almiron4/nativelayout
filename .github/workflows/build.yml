@@ -34,8 +34,8 @@ jobs:
           name: nativelayout-debug
           path: android/app/build/outputs/apk/debug/*.apk
 
-  example-tasks:
-    name: Test and build example (tasks)
+  example-testlayout:
+    name: Build example (testlayout) against this commit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,202 +50,21 @@ jobs:
       - name: Publish the library from this commit to Maven local
         run: gradle -p android :core:publishToMavenLocal :android:publishToMavenLocal
 
-      - name: Create a consumer project from the example files
+      - name: Point the example at the local library
+        working-directory: android/examples/testlayout
         run: |
           set -euo pipefail
-
-          APP="$RUNNER_TEMP/tasks-app"
-          SRC="$GITHUB_WORKSPACE/android/examples/tasks"
-          AGP=$(sed -n 's/.*com.android.application") version "\([^"]*\)".*/\1/p' android/build.gradle.kts | head -n1)
-          KOTLIN=$(sed -n 's/.*org.jetbrains.kotlin.android") version "\([^"]*\)".*/\1/p' android/build.gradle.kts | head -n1)
-          LIB=$(sed -n 's/^version = "\(.*\)"/\1/p' android/android/build.gradle.kts | head -n1)
-
-          mkdir -p "$APP/app/src/main/assets" \
-                   "$APP/app/src/main/java/com/example/testelayou" \
-                   "$APP/app/src/test/java/com/example/testelayou"
-
-          cp "$SRC/tasks.nl" "$SRC/tasks.css" "$APP/app/src/main/assets/"
-          cp "$SRC/MainActivity.kt" "$APP/app/src/main/java/com/example/testelayou/"
-
-          cat > "$APP/settings.gradle.kts" <<EOF
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  mavenLocal { content { includeGroup("io.github.getnativelayout") } }
-              }
-          }
-          rootProject.name = "tasks-example"
-          include(":app")
-          EOF
-
-          cat > "$APP/build.gradle.kts" <<EOF
-          plugins {
-              id("com.android.application") version "$AGP" apply false
-              kotlin("android") version "$KOTLIN" apply false
-          }
-          EOF
-
-          cat > "$APP/gradle.properties" <<EOF
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          android.useAndroidX=true
-          android.nonTransitiveRClass=true
-          EOF
-
-          cat > "$APP/app/build.gradle.kts" <<EOF
-          plugins {
-              id("com.android.application")
-              kotlin("android")
-          }
-
-          android {
-              namespace = "com.example.testelayou"
-              compileSdk = 36
-
-              defaultConfig {
-                  applicationId = "com.example.testelayou"
-                  minSdk = 21
-                  targetSdk = 36
-                  versionCode = 1
-                  versionName = "1.0"
-              }
-
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_21
-                  targetCompatibility = JavaVersion.VERSION_21
-              }
-          }
-
-          kotlin { jvmToolchain(21) }
-
-          dependencies {
-              implementation("io.github.getnativelayout:nativelayout-android:$LIB")
-              testImplementation("junit:junit:4.13.2")
-          }
-          EOF
-
-          cat > "$APP/app/src/main/AndroidManifest.xml" <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:label="Tasks example">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          cat > "$APP/app/src/test/java/com/example/testelayou/TasksScreenTest.kt" <<'EOF'
-          package com.example.testelayou
-
-          import nativelayout.core.Expander
-          import nativelayout.core.LayoutEngine
-          import java.io.File
-          import org.junit.Assert.assertTrue
-          import org.junit.Test
-
-          class TasksScreenTest {
-              private val assets = File("src/main/assets")
-
-              private fun load(name: String): String? =
-                  File(assets, name).takeIf { it.isFile }?.readText()
-
-              private fun task(title: String, done: Boolean): Map<String, Any> =
-                  mapOf("title" to title, "done" to done)
-
-              private fun data(tasks: List<Map<String, Any>>, filter: String): Map<String, Any?> {
-                  val total = tasks.size
-                  val done = tasks.count { it["done"] == true }
-                  val shown = when (filter) {
-                      "pending" -> tasks.filter { it["done"] == false }
-                      "done" -> tasks.filter { it["done"] == true }
-                      else -> tasks
-                  }
-                  return mapOf(
-                      "total" to total,
-                      "done" to done,
-                      "pending" to (total - done),
-                      "percent" to (if (total == 0) 0 else done * 100 / total),
-                      "filter" to filter,
-                      "empty" to "Nothing here.",
-                      "shown" to shown
-                  )
-              }
-
-              private fun idsOf(tasks: List<Map<String, Any>>, filter: String): Set<String> {
-                  val source = load("tasks.nl") ?: error("tasks.nl not found in src/main/assets")
-                  val expanded = Expander.expand(source, data(tasks, filter)) { load(it) }
-                  val result = LayoutEngine.build(expanded.html, 1)
-                  result.warnings.forEach { println("warning, line ${it.line}: ${it.message}") }
-                  return result.byId.keys.map { it.removePrefix("#") }.toSet()
-              }
-
-              private val mixed = listOf(
-                  task("Test nativelayout", true),
-                  task("Write the guide", false),
-                  task("Publish the library", false)
-              )
-
-              @Test
-              fun allFilterShowsEveryControl() {
-                  val ids = idsOf(mixed, "all")
-                  for (id in listOf("title", "add", "show-all", "show-pending", "show-done", "clear")) {
-                      assertTrue("missing id '$id'", id in ids)
-                  }
-              }
-
-              @Test
-              fun emptyListHidesClearButton() {
-                  val ids = idsOf(emptyList(), "all")
-                  assertTrue("add" in ids)
-                  assertTrue("clear" !in ids)
-              }
-
-              @Test
-              fun pendingOnlyHidesClearButton() {
-                  val ids = idsOf(listOf(task("One", false), task("Two", false)), "pending")
-                  assertTrue("clear" !in ids)
-              }
-
-              @Test
-              fun everyFilterRenders() {
-                  for (filter in listOf("all", "pending", "done")) {
-                      idsOf(mixed, filter)
-                  }
-              }
-
-              @Test
-              fun fullProgressRenders() {
-                  idsOf(listOf(task("Done", true)), "done")
-              }
-          }
-          EOF
-
-      - name: Test the screen (expand and build the tree for each state)
-        run: gradle -p "$RUNNER_TEMP/tasks-app" :app:testDebugUnitTest
+          LIB=$(sed -n 's/^version = "\(.*\)"/\1/p' ../../android/build.gradle.kts | head -n1)
+          test -n "$LIB"
+          sed -i "s#implementation(\"com.github.getnativelayout.nativelayout:nativelayout-android:[^\"]*\")#implementation(\"io.github.getnativelayout:nativelayout-android:$LIB\")#" app/build.gradle.kts
+          sed -i 's#maven("https://jitpack.io")#maven("https://jitpack.io")\n        mavenLocal()#' settings.gradle.kts
+          grep -n "nativelayout-android" app/build.gradle.kts
+          grep -n "mavenLocal" settings.gradle.kts
 
       - name: Build the example APK
-        run: gradle -p "$RUNNER_TEMP/tasks-app" :app:assembleDebug
+        run: gradle -p android/examples/testlayout :app:assembleDebug
 
       - uses: actions/upload-artifact@v4
         with:
-          name: tasks-example-debug
-          path: ${{ runner.temp }}/tasks-app/app/build/outputs/apk/debug/*.apk
-
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: tasks-example-test-report
-          path: ${{ runner.temp }}/tasks-app/app/build/reports/tests/
+          name: testlayout-debug
+          path: android/examples/testlayout/app/build/outputs/apk/debug/*.apk
