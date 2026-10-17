@@ -1,0 +1,41 @@
+/* Material 3 baseline palette */
+:root { --primary: #6750A4; --on-primary: #FFFFFF; --primary-c: #EADDFF; --on-primary-c: #21005D; --secondary-c: #E8DEF8; --on-secondary-c: #1D192B; --tertiary-c: #FFD8E4; --on-tertiary-c: #31111D; --surface: #FEF7FF; --surface-c: #F3EDF7; --surface-ch: #ECE6F0; --on-surface: #1D1B20; --on-variant: #49454F; --outline: #CAC4D0; }
+
+body  { flex: 1; padding: 1rem; gap: 1rem; background: var(--surface); color: var(--on-surface); }
+p     { margin: 0; font-size: 0.875rem; }
+h1    { margin: 0; font-size: 1.75rem; font-weight: bold; }
+h2    { margin: 0; font-size: 1.125rem; font-weight: bold; }
+
+.bar     { flex-direction: row; align-items: center; gap: 0.75rem; }
+.grow    { flex: 1; }
+.muted   { color: var(--on-variant); }
+
+.avatar   { width: 2.75rem; height: 2.75rem; border-radius: 1.375rem; background: var(--tertiary-c); justify-content: center; align-items: center; }
+.avatar-t { color: var(--on-tertiary-c); font-size: 1.125rem; font-weight: bold; }
+
+.chips   { flex-direction: row; gap: 0.5rem; }
+.chip    { flex: 1; padding: 0.625rem; border: 1px solid var(--outline); border-radius: 0.5rem; background: transparent; color: var(--on-variant); font-size: 0.8125rem; }
+.chip-on { background: var(--secondary-c); border: 1px solid var(--secondary-c); color: var(--on-secondary-c); font-weight: bold; }
+
+.hero    { padding: 1.25rem; gap: 0.5rem; border-radius: 1.75rem; background: var(--primary-c); color: var(--on-primary-c); }
+.hero-k  { font-size: 0.75rem; font-weight: bold; }
+.hero-t  { font-size: 1.5rem; font-weight: bold; }
+.hero-p  { font-size: 1.25rem; font-weight: bold; }
+#pedir   { padding: 0.75rem; border-radius: 1.5rem; background: var(--primary); color: var(--on-primary); font-weight: bold; }
+
+.item    { flex-direction: row; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 1rem; background: var(--surface-c); }
+.thumb   { width: 3rem; height: 3rem; border-radius: 0.75rem; background: var(--secondary-c); justify-content: center; align-items: center; }
+.thumb-t { color: var(--on-secondary-c); font-size: 1.125rem; font-weight: bold; }
+.name    { font-size: 1rem; font-weight: bold; }
+.price   { color: var(--primary); font-weight: bold; }
+.qtd     { padding: 0.25rem; border-radius: 0.75rem; background: var(--primary); }
+.qtd-t   { color: var(--on-primary); font-size: 0.75rem; font-weight: bold; }
+.mais    { width: 2.5rem; height: 2.5rem; padding: 0; border-radius: 1.25rem; background: var(--primary-c); color: var(--on-primary-c); font-size: 1.25rem; font-weight: bold; }
+
+.cart    { padding: 1.25rem; gap: 0.75rem; border-radius: 1.75rem; background: var(--surface-ch); }
+.total   { font-size: 1.75rem; font-weight: bold; }
+#finalizar { padding: 0.875rem; border-radius: 1.5rem; background: var(--primary); color: var(--on-primary); font-weight: bold; }
+#limpar    { padding: 0.875rem; border: 1px solid var(--outline); border-radius: 1.5rem; background: transparent; color: var(--primary); font-weight: bold; }
+
+.snack   { padding: 0.875rem; border-radius: 0.75rem; background: #322F35; }
+.snack-t { color: #F5EFF7; }
