@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Ficheiros</title>
+<meta name="theme-color" content="#FCFBF6">
+<style>
+:root {
+  --bg:#FCFBF6; --bg2:#FFFFFF; --bg3:#F1EEE3; --border:#E3DFD0;
+  --text:#181712; --muted:#737367; --sec:#424439;
+  --icone-cor:#424439; --seta-cor:#737663;
+  --azul:#0B57D0; --azulc:#C2E7FF; --azulx:#001D35;
+  --roxo:#0B57D0; --roxo2:#0B57D0; --verde:#188038; --vermelho:#B3261E;
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+input, textarea { -webkit-user-select:text; user-select:text; }
+::-webkit-scrollbar { display:none; }
+html, body {
+  margin:0; padding:0; height:100%;
+  background:var(--bg); color:var(--text);
+  font-family:"Google Sans", Roboto, Arial, sans-serif;
+  overflow:hidden; overscroll-behavior:none; touch-action:manipulation;
+}
+button, input { font-family:inherit; }
+button { cursor:pointer; }
+svg { display:block; }
+#raiz { display:flex; flex-direction:column; height:100%; }
+
+#cabecalho, #barra-selecao { align-items:center; gap:2px; flex-shrink:0; color:var(--text); }
+#cabecalho { display:flex; padding:12px 8px 8px; background:var(--bg); }
+.esp { flex:1; }
+.btn-icone { width:40px; height:40px; flex-shrink:0; background:none; border:none; padding:8px; color:var(--sec); border-radius:50%; transition:background .15s, opacity .15s; }
+.btn-icone:active { background:rgba(0,0,0,0.08); }
+.btn-icone:disabled { opacity:0.38; }
+.btn-icone svg { width:100%; height:100%; }
+
+#barra-pesquisa { display:none; padding:2px 8px 8px; flex-shrink:0; }
+#barra-pesquisa.show { display:block; }
+#pesquisa-input {
+  width:100%; height:44px; padding:0 20px; font-size:15px; -webkit-user-select:text; user-select:text;
+  border:none; outline:none; border-radius:22px; background:var(--bg3); color:var(--text);
+}
+#pesquisa-input::placeholder { color:var(--sec); opacity:1; }
+
+#barra-selecao { display:none; height:52px; margin:8px; padding:0 4px; border-radius:26px; background:var(--azulc); color:var(--azulx); }
+#barra-selecao.show { display:flex; }
+#barra-selecao .btn-icone { background:none; color:var(--azulx); }
+#barra-selecao .btn-icone:active { background:rgba(0,29,53,0.12); }
+#selecao-contagem { font-weight:500; font-size:17px; margin-left:6px; }
+#btn-sel-apagar { color:var(--vermelho) !important; }
+
+#lista { flex:1; overflow:auto; padding:2px 0 8px; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; }
+.arv { min-width:100%; width:max-content; }
+.secao-titulo { padding:14px 24px 6px; font-size:14px; font-weight:500; color:var(--sec); }
+.linha { --fundo-linha:var(--bg); display:flex; align-items:center; min-height:38px; margin:0 8px 2px; padding-right:2px; background:none; border-radius:19px; transition:background .15s; touch-action:pan-x pan-y; }
+.linha:active { background:rgba(0,0,0,0.06); }
+.linha.ativa { --fundo-linha:var(--azulc); background:var(--azulc); color:var(--azulx); }
+.linha.ativa .nome { font-weight:700; }
+.linha.ativa .ne, .linha.ativa .chevron { color:var(--azulx); }
+.linha.sel { --fundo-linha:#D3E3FD; background:#D3E3FD; }
+.linha .chevron { width:16px; height:16px; flex-shrink:0; color:var(--seta-cor); transition:transform 0.15s; padding:0; }
+.linha .chevron.aberta { transform:rotate(90deg); }
+.linha .espaco { width:16px; flex-shrink:0; }
+.linha .icone { width:17px; height:17px; flex-shrink:0; margin:0 9px 0 2px; padding:0; border-radius:0; background:none; color:var(--icone-cor); }
+.linha.pasta .icone, .linha.ficheiro .icone { background:none; }
+.linha .icone svg { width:100%; height:100%; }
+.linha .icone.mini { padding:0; overflow:hidden; border-radius:4px; background:var(--bg3); }
+.linha .icone.mini img { width:100%; height:100%; object-fit:cover; display:block; }
+.vis-img { display:flex; align-items:center; justify-content:center; min-height:120px; max-height:60vh; padding:8px; border-radius:12px; overflow:auto;
+  background:#fff repeating-conic-gradient(#ECEFF4 0% 25%, #fff 0% 50%) 50% / 16px 16px; }
+.vis-img img { max-width:100%; max-height:56vh; object-fit:contain; }
+.linha .nome { flex:1; min-width:0; display:flex; font-size:14px; }
+.linha .nb { min-width:0; white-space:nowrap; }
+.linha .ne { flex-shrink:0; white-space:nowrap; color:var(--muted); }
+.linha.pasta .nome { font-weight:400; }
+.linha .meta { font-size:12px; color:var(--sec); background:var(--bg3); padding:2px 9px; border-radius:10px; margin:0 4px 0 8px; flex-shrink:0; white-space:nowrap; }
+.mais { position:sticky; right:8px; width:34px; height:34px; flex-shrink:0; background:var(--fundo-linha); border:none; padding:7px; color:var(--sec); border-radius:50%; }
+.mais svg { width:100%; height:100%; }
+.mais:active { background:rgba(0,0,0,0.08); }
+.caixa-sel { width:16px; height:16px; border:2px solid var(--sec); border-radius:50%; margin:0; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; }
+.caixa-sel.marcada { background:var(--azul); border-color:var(--azul); }
+.caixa-sel svg { width:10px; height:10px; }
+.vazio { text-align:center; color:var(--muted); font-size:14px; line-height:1.6; padding:40px 24px; }
+
+#rodape { flex-shrink:0; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); background:var(--bg); border-top:1px solid var(--border); font-size:12px; color:var(--muted); text-align:center; }
+
+#camada { position:fixed; left:0; right:0; top:0; bottom:0; display:none; z-index:50; }
+#camada.show { display:block; }
+#camada.saindo { pointer-events:none; }
+.fundo { position:absolute; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,0.32); animation:fundo-entra .22s ease-out both; }
+.fundo.claro { background:transparent; animation:none; }
+.centro { position:absolute; left:0; right:0; top:0; bottom:0; display:flex; align-items:center; justify-content:center; padding:16px; pointer-events:none; }
+.centro > * { pointer-events:auto; }
+.cartao { background:#F3F6FC; border-radius:28px; box-shadow:0 8px 32px rgba(0,0,0,0.28); overflow:hidden; display:flex; flex-direction:column; will-change:transform, opacity; }
+.dialogo { position:relative; width:100%; max-height:86%; animation:dialogo-entra .26s cubic-bezier(.2,.9,.25,1) both; }
+.popup { position:absolute; min-width:210px; max-width:calc(100% - 16px); max-height:calc(100% - 16px); padding:6px 0; border-radius:16px; overflow-y:auto; animation:popup-entra .2s cubic-bezier(.2,.9,.25,1) both; }
+@keyframes fundo-entra { from { opacity:0; } to { opacity:1; } }
+@keyframes fundo-sai { to { opacity:0; } }
+@keyframes dialogo-entra { from { opacity:0; transform:translateY(16px) scale(.94); } to { opacity:1; transform:none; } }
+@keyframes dialogo-sai { to { opacity:0; transform:translateY(8px) scale(.96); } }
+@keyframes popup-entra { from { opacity:0; transform:scale(.8); } to { opacity:1; transform:none; } }
+@keyframes popup-sai { to { opacity:0; transform:scale(.9); } }
+#camada.saindo .fundo { animation:fundo-sai .16s ease-in both; }
+#camada.saindo .dialogo { animation:dialogo-sai .16s ease-in both; }
+#camada.saindo .popup { animation:popup-sai .12s ease-in both; }
+@media (prefers-reduced-motion: reduce) { .fundo, .dialogo, .popup, #camada.saindo .fundo, #camada.saindo .dialogo, #camada.saindo .popup { animation-duration:.01s; } }
+.cx-titulo { padding:24px 24px 4px; font-size:22px; font-weight:400; flex-shrink:0; }
+.cx-sub { padding:0 24px; font-size:14px; color:var(--muted); flex-shrink:0; }
+.cx-corpo { padding:14px 24px 6px; font-size:15px; line-height:1.5; overflow-y:auto; color:var(--sec); }
+.cx-rodape { padding:10px 16px 16px; display:flex; justify-content:flex-end; gap:4px; flex-shrink:0; }
+.btn-cx { padding:10px 14px; min-height:40px; border-radius:20px; border:none; background:none; font-weight:500; font-size:14px; color:var(--azul); transition:background .15s, opacity .15s; }
+.btn-cx:active { background:rgba(11,87,208,0.10); }
+.btn-cx.primario { font-weight:700; }
+.btn-cx.perigo { color:var(--vermelho); }
+.btn-cx:disabled { opacity:0.4; }
+.campo { width:100%; padding:14px 16px; font-size:16px; border:1px solid #747775; border-radius:12px; background:none; color:var(--text); outline:none; }
+.campo:focus { border-color:var(--azul); box-shadow:0 0 0 1px var(--azul); }
+.campo-erro { color:var(--vermelho); font-size:13px; margin-top:8px; min-height:16px; }
+.item-menu { display:flex; align-items:center; gap:16px; width:100%; height:48px; padding:0 18px; background:none; border:none; font-size:15px; font-weight:500; text-align:left; color:var(--text); white-space:nowrap; }
+.item-menu-icone { width:22px; height:22px; flex-shrink:0; color:var(--sec); }
+.item-menu-icone svg { width:100%; height:100%; }
+.item-menu.perigo, .item-menu.perigo .item-menu-icone { color:var(--vermelho); }
+.item-menu:active { background:rgba(0,0,0,0.06); }
+.lista-menu { flex:1; min-height:0; overflow-y:auto; padding:6px 0; }
+.destino { display:flex; align-items:center; width:100%; height:48px; padding-right:18px; background:none; border:none; font-size:15px; text-align:left; color:var(--text); }
+.destino:active { background:rgba(0,0,0,0.06); }
+.destino:disabled { opacity:0.38; }
+.destino svg { width:20px; height:20px; margin-right:12px; flex-shrink:0; color:var(--icone-cor); }
+
+#toast { position:fixed; left:12px; right:12px; bottom:14px; z-index:60; background:#303030; border:none; color:#fff; padding:13px 16px; border-radius:6px; font-size:14px; display:none; align-items:center; gap:12px; box-shadow:0 3px 10px rgba(0,0,0,0.3); }
+#toast.show { display:flex; }
+#toast span { flex:1; }
+#toast button { background:none; border:none; color:#8AB4F8; font-weight:500; font-size:14px; text-transform:uppercase; padding:4px 6px; }
+</style>
+</head>
+<body>
+
+<div id="raiz">
+  <div id="cabecalho">
+    <button class="btn-icone" data-acao="novo-ficheiro" data-ic="novoFicheiro" aria-label="Novo ficheiro"></button>
+    <button class="btn-icone" data-acao="nova-pasta" data-ic="novaPasta" aria-label="Nova pasta"></button>
+    <button class="btn-icone" data-acao="salvar" data-ic="salvar" aria-label="Salvar"></button>
+    <span class="esp"></span>
+    <button class="btn-icone" data-acao="alternar-pesquisa" data-ic="pesquisar" aria-label="Pesquisar"></button>
+    <button class="btn-icone" data-acao="menu-cabecalho" data-ic="mais" aria-label="Mais opções"></button>
+  </div>
+
+  <div id="barra-pesquisa">
+    <input id="pesquisa-input" type="search" placeholder="Procurar ficheiros" autocomplete="off">
+  </div>
+
+  <div id="barra-selecao">
+    <button class="btn-icone" data-acao="selecao-cancelar" data-ic="fechar" aria-label="Cancelar seleção"></button>
+    <span id="selecao-contagem">0</span>
+    <span class="esp"></span>
+    <button class="btn-icone" id="btn-sel-mover" data-acao="selecao-mover" data-ic="mover" aria-label="Mover"></button>
+    <button class="btn-icone" id="btn-sel-apagar" data-acao="selecao-apagar" data-ic="apagar" aria-label="Apagar"></button>
+  </div>
+
+  <div id="lista"></div>
+  <div id="rodape"></div>
+</div>
+
+<div id="camada"></div>
+<div id="toast"><span id="toast-texto"></span><button id="toast-desfazer" data-acao="desfazer" style="display:none">Desfazer</button></div>
+
+<script>
+(function () {
+'use strict';
+
+const MARCADOR = '.keep';
+const EXT_OK = ['.nl', '.css', '.json', '.md', '.txt', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'];
+const NOMES_PROIBIDOS = ['__proto__', 'constructor', 'prototype'];
+const MODELO_PADRAO = [
+  '<nativelayout>',
+  '',
+  '<body>',
+  '    <h1>Titulo</h1>',
+  '</body>',
+  '',
+  '</nativelayout>',
+  ''
+].join('\n');
+
+const tem = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const nomeDe = (c) => c.slice(c.lastIndexOf('/') + 1);
+const pastaDe = (c) => (c.lastIndexOf('/') >= 0 ? c.slice(0, c.lastIndexOf('/')) : '');
+const juntar = (pasta, nome) => (pasta ? pasta + '/' + nome : nome);
+const extDe = (nome) => { const i = nome.lastIndexOf('.'); return i > 0 ? nome.slice(i).toLowerCase() : ''; };
+const ehMarcador = (c) => nomeDe(c) === MARCADOR;
+const dentroDe = (c, pasta) => pasta === '' || c === pasta || c.indexOf(pasta + '/') === 0;
+const comparar = (a, b) => a.localeCompare(b, 'pt', { numeric: true, sensitivity: 'base' });
+
+function copia(F) { return Object.assign({}, F); }
+
+function pastasDe(F) {
+  const s = new Set();
+  Object.keys(F).forEach((c) => {
+    const partes = c.split('/');
+    partes.pop();
+    let acc = '';
+    partes.forEach((p) => { acc = acc ? acc + '/' + p : p; s.add(acc); });
+  });
+  return Array.from(s).sort(comparar);
+}
+function existePasta(F, p) { return p === '' || Object.keys(F).some((c) => c.indexOf(p + '/') === 0); }
+
+function nomesNaPasta(F, pasta) {
+  const usados = new Set();
+  Object.keys(F).forEach((c) => {
+    if (pasta && c.indexOf(pasta + '/') !== 0) return;
+    const resto = pasta ? c.slice(pasta.length + 1) : c;
+    const primeiro = resto.split('/')[0];
+    if (primeiro && primeiro !== MARCADOR) usados.add(primeiro.toLowerCase());
+  });
+  return usados;
+}
+function nomeUnico(F, pasta, nome, ehPasta) {
+  const usados = nomesNaPasta(F, pasta);
+  if (!usados.has(nome.toLowerCase())) return nome;
+  const ext = ehPasta ? '' : extDe(nome);
+  const base = ext ? nome.slice(0, nome.length - ext.length) : nome;
+  let n = 2;
+  while (usados.has((base + ' (' + n + ')' + ext).toLowerCase())) n++;
+  return base + ' (' + n + ')' + ext;
+}
+
+function validarNome(nome, ehPasta) {
+  if (!nome || !nome.trim()) return 'Escreve um nome.';
+  if (nome !== nome.trim()) return 'O nome não pode começar nem acabar com espaços.';
+  if (nome.length > 80) return 'Nome demasiado longo (máximo 80 caracteres).';
+  if (/[\\/:*?"<>|\u0000-\u001f]/.test(nome)) return 'O nome não pode ter \\ / : * ? " < > |';
+  if (nome.charAt(0) === '.') return 'O nome não pode começar por ponto.';
+  if (nome.charAt(nome.length - 1) === '.') return 'O nome não pode acabar em ponto.';
+  if (NOMES_PROIBIDOS.indexOf(nome) >= 0) return 'Este nome não é permitido.';
+  if (!ehPasta && EXT_OK.indexOf(extDe(nome)) < 0) return 'Extensão não suportada. Usa: ' + EXT_OK.join(' ');
+  return null;
+}
+
+function diferenca(F, N) {
+  const diff = { escrever: {}, apagar: [] };
+  const inverso = { escrever: {}, apagar: [] };
+  Object.keys(F).forEach((k) => {
+    if (!tem(N, k)) { diff.apagar.push(k); inverso.escrever[k] = F[k]; }
+    else if (N[k] !== F[k]) { diff.escrever[k] = N[k]; inverso.escrever[k] = F[k]; }
+  });
+  Object.keys(N).forEach((k) => { if (!tem(F, k)) { diff.escrever[k] = N[k]; inverso.apagar.push(k); } });
+  return { diff: diff, inverso: inverso };
+}
+
+function manterPastas(F, N, retiradas) {
+  pastasDe(F).forEach((p) => {
+    if (existePasta(N, p)) return;
+    if (retiradas.some((r) => dentroDe(p, r))) return;
+    N[p + '/' + MARCADOR] = '';
+  });
+}
+
+function atualDepois(atualAntes, mapa, N) {
+  if (!atualAntes) return atualAntes;
+  if (mapa && mapa[atualAntes]) return mapa[atualAntes];
+  if (tem(N, atualAntes)) return atualAntes;
+  const pasta = pastaDe(atualAntes);
+  const candidatos = Object.keys(N).filter((c) => !ehMarcador(c));
+  const mesmaPasta = candidatos.filter((c) => pastaDe(c) === pasta).sort(comparar);
+  if (mesmaPasta.length) return mesmaPasta[0];
+  candidatos.sort(comparar);
+  return candidatos.length ? candidatos[0] : null;
+}
+
+function resultado(F, N, extra) {
+  const d = diferenca(F, N);
+  return Object.assign({ ok: true, novo: N, diff: d.diff, inverso: d.inverso }, extra || {});
+}
+function erro(msg) { return { ok: false, erro: msg }; }
+
+function opCriarFicheiro(F, pasta, nome) {
+  const e = validarNome(nome, false);
+  if (e) return erro(e);
+  if (nomesNaPasta(F, pasta).has(nome.toLowerCase())) return erro('Já existe um ficheiro ou pasta com esse nome.');
+  const caminho = juntar(pasta, nome);
+  const N = copia(F);
+  const n = nome.toLowerCase();
+  N[caminho] = /\.nl$/.test(n) ? MODELO_PADRAO : '';
+  return resultado(F, N, { abrir: caminho, mensagem: 'Ficheiro criado.' });
+}
+function opCriarPasta(F, pasta, nome) {
+  const e = validarNome(nome, true);
+  if (e) return erro(e);
+  if (nomesNaPasta(F, pasta).has(nome.toLowerCase())) return erro('Já existe um ficheiro ou pasta com esse nome.');
+  const N = copia(F);
+  N[juntar(juntar(pasta, nome), MARCADOR)] = '';
+  return resultado(F, N, { mensagem: 'Pasta criada.', pasta: juntar(pasta, nome) });
+}
+
+function abrangidos(F, item) {
+  if (tem(F, item)) return [item];
+  return Object.keys(F).filter((c) => c.indexOf(item + '/') === 0);
+}
+function ehPastaFn(F, item) { return !tem(F, item) && existePasta(F, item); }
+
+function aplicarMovimento(F, destinos, atualAntes) {
+  const mapa = {};
+  const retiradas = [];
+  Object.keys(destinos).forEach((item) => {
+    const novoItem = destinos[item];
+    if (ehPastaFn(F, item)) retiradas.push(item);
+    abrangidos(F, item).forEach((c) => { mapa[c] = novoItem + c.slice(item.length); });
+  });
+  const N = {};
+  Object.keys(F).forEach((c) => { N[mapa[c] || c] = F[c]; });
+  manterPastas(F, N, retiradas);
+  return resultado(F, N, { atual: atualDepois(atualAntes, mapa, N) });
+}
+
+function opRenomear(F, item, novoNome, atualAntes) {
+  const pasta = pastaDe(item);
+  const eDir = ehPastaFn(F, item);
+  const e = validarNome(novoNome, eDir);
+  if (e) return erro(e);
+  const novoCaminho = juntar(pasta, novoNome);
+  if (novoCaminho === item) return erro('O nome é o mesmo.');
+  const usados = nomesNaPasta(F, pasta);
+  usados.delete(nomeDe(item).toLowerCase());
+  if (usados.has(novoNome.toLowerCase())) return erro('Já existe um ficheiro ou pasta com esse nome.');
+  const r = aplicarMovimento(F, { [item]: novoCaminho }, atualAntes);
+  r.mensagem = 'Renomeado.';
+  return r;
+}
+
+function opMover(F, itens, destino, atualAntes) {
+  const escolhidos = itens.filter((i) => !itens.some((o) => o !== i && dentroDe(i, o) && i !== o));
+  for (const i of escolhidos) {
+    if (ehPastaFn(F, i) && dentroDe(destino, i)) return erro('Não podes mover uma pasta para dentro dela própria.');
+  }
+  const destinos = {};
+  const F2 = copia(F);
+  escolhidos.forEach((i) => {
+    if (pastaDe(i) === destino) return;
+    const nome = nomeUnico(F2, destino, nomeDe(i), ehPastaFn(F, i));
+    destinos[i] = juntar(destino, nome);
+    F2[juntar(destino, nome) + '/.reservado'] = '';
+  });
+  if (!Object.keys(destinos).length) return erro('Os itens já estão nessa pasta.');
+  const r = aplicarMovimento(F, destinos, atualAntes);
+  r.mensagem = 'Movido.';
+  return r;
+}
+
+function opDuplicar(F, item) {
+  const pasta = pastaDe(item);
+  const eDir = ehPastaFn(F, item);
+  const ext = eDir ? '' : extDe(nomeDe(item));
+  const base = eDir ? nomeDe(item) : nomeDe(item).slice(0, nomeDe(item).length - ext.length);
+  const nome = nomeUnico(F, pasta, base + ' copia' + ext, eDir);
+  const novo = juntar(pasta, nome);
+  const N = copia(F);
+  abrangidos(F, item).forEach((c) => { N[novo + c.slice(item.length)] = F[c]; });
+  return resultado(F, N, { mensagem: 'Duplicado.', abrir: eDir ? null : novo });
+}
+
+function opApagar(F, itens, atualAntes) {
+  const N = copia(F);
+  const retiradas = [];
+  itens.forEach((i) => {
+    if (ehPastaFn(F, i)) retiradas.push(i);
+    abrangidos(F, i).forEach((c) => { delete N[c]; });
+  });
+  manterPastas(F, N, retiradas);
+  const removidos = Object.keys(F).filter((c) => !tem(N, c) && !ehMarcador(c)).length;
+  return resultado(F, N, {
+    atual: atualDepois(atualAntes, null, N),
+    mensagem: removidos === 1 ? 'Ficheiro apagado.' : removidos + ' ficheiros apagados.'
+  });
+}
+
+function pesquisar(F, termo) {
+  const q = termo.trim().toLowerCase();
+  const nomes = [];
+  if (!q) return nomes;
+  Object.keys(F).filter((c) => !ehMarcador(c)).sort(comparar).forEach((c) => {
+    if (c.toLowerCase().indexOf(q) >= 0) nomes.push(c);
+  });
+  return nomes;
+}
+
+function tamanhoLegivel(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(bytes < 10240 ? 1 : 0) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+const modelo = {
+  MARCADOR, validarNome, nomeUnico, pastasDe, existePasta,
+  diferenca, opCriarFicheiro, opCriarPasta, opRenomear, opMover, opDuplicar, opApagar,
+  pesquisar, tamanhoLegivel, atualDepois, ehMarcador, pastaDe, nomeDe, juntar
+};
+
+let F = {};
+let atual = null;
+let abertas = new Set();
+let selecao = null;
+let pesquisaAberta = false;
+let camadaAtual = null;
+let desfazerAcao = null;
+let toastId = null;
+
+const $ = (id) => document.getElementById(id);
+const RX_IMG = /\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i;
+const ehImagem = (c) => RX_IMG.test(c);
+function srcImagem(c) {
+  const e = c.slice(c.lastIndexOf('.') + 1).toLowerCase();
+  const mime = e === 'svg' ? 'image/svg+xml' : e === 'jpg' ? 'image/jpeg' : 'image/' + e;
+  return 'data:' + mime + ';base64,' + F[c];
+}
+function iconeArq(c) {
+  if (ehImagem(c) && F[c]) return '<span class="icone mini"><img loading="lazy" alt="" src="' + srcImagem(c) + '"></span>';
+  return '<span class="icone">' + IC_ARQ + '</span>';
+}
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+function ponte() { return window.Ponte || null; }
+function enviarAbrir(caminho) { const p = ponte(); if (p && p.abrirFicheiro) p.abrirFicheiro(caminho); }
+function enviarAplicar(diff) {
+  const p = ponte();
+  if (p && p.aplicarDiff) {
+    diff.atual = atual;
+    p.aplicarDiff(JSON.stringify(diff));
+  }
+}
+function enviarFechar() { const p = ponte(); if (p && p.fecharSidebar) p.fecharSidebar(); }
+
+const IC_PASTA = '<svg viewBox="0 0 24 24" fill="none"><path d="M3.5 7A2 2 0 0 1 5.5 5h3.6l2 2.2h7.4a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+const IC_PASTA_ABERTA = '<svg viewBox="0 0 24 24" fill="none"><path d="M3.5 18.5V6.5A1.5 1.5 0 0 1 5 5h3.8l2 2.2h6.7A1.5 1.5 0 0 1 19 8.7V11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 18.5L6.8 11H21.5L18.2 18.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+const IC_ARQ = '<svg viewBox="0 0 24 24" fill="none"><path d="M6.5 3.5h7.6l4.4 4.4V19.5a1.2 1.2 0 0 1-1.2 1.2H6.5a1.2 1.2 0 0 1-1.2-1.2V4.7a1.2 1.2 0 0 1 1.2-1.2z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 3.7V8h4.3" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+const IC_CHEVRON = '<svg viewBox="0 0 16 16"><path d="M6 4.3v7.4L10 8z" fill="currentColor"/></svg>';
+const IC_MAIS = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="19" r="2" fill="currentColor"/></svg>';
+const IC_CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const MI = {
+  importar: '<svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  abrir: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 12s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.4" stroke="currentColor" stroke-width="2"/></svg>',
+  novoFicheiro: '<svg viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 12v6M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  novaPasta: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 11v5M9.5 13.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  renomear: '<svg viewBox="0 0 24 24" fill="none"><path d="M14.7 3.3a1 1 0 0 1 1.4 0l4.6 4.6a1 1 0 0 1 0 1.4L9.5 20.5 3 21l0.5-6.5L14.7 3.3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  mover: '<svg viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 15.5L13 12l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  duplicar: '<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="13" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15V4a1 1 0 0 1 1-1h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  apagar: '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3m-8 0v13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  selecionar: '<svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" stroke-width="2"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  expandir: '<svg viewBox="0 0 24 24" fill="none"><path d="M6 10l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 5l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/></svg>',
+  recolher: '<svg viewBox="0 0 24 24" fill="none"><path d="M6 14l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 19l6-6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/></svg>'
+};
+
+MI.salvar = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 3h11l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 3v5h7V3M8 21v-7h8v7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+MI.pesquisar = '<svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2"/><path d="M16 16l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+MI.mais = IC_MAIS;
+MI.fechar = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+document.querySelectorAll('[data-ic]').forEach((b) => { b.innerHTML = MI[b.dataset.ic] || ''; });
+
+function construirArvore() {
+  const raiz = { nome: '', caminho: '', pastas: Object.create(null), ficheiros: [] };
+  Object.keys(F).forEach((c) => {
+    const partes = c.split('/');
+    let no = raiz;
+    let acc = '';
+    for (let i = 0; i < partes.length - 1; i++) {
+      acc = acc ? acc + '/' + partes[i] : partes[i];
+      if (!no.pastas[partes[i]]) no.pastas[partes[i]] = { nome: partes[i], caminho: acc, pastas: Object.create(null), ficheiros: [] };
+      no = no.pastas[partes[i]];
+    }
+    if (!modelo.ehMarcador(c)) no.ficheiros.push(c);
+  });
+  return raiz;
+}
+function contarFicheiros(no) {
+  let n = no.ficheiros.length;
+  Object.keys(no.pastas).forEach((k) => { n += contarFicheiros(no.pastas[k]); });
+  return n;
+}
+function linhasDe(no, prof, saida) {
+  Object.keys(no.pastas).map((k) => no.pastas[k])
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { numeric: true, sensitivity: 'base' }))
+    .forEach((p) => {
+      const aberta = abertas.has(p.caminho);
+      saida.push({ tipo: 'pasta', caminho: p.caminho, nome: p.nome, prof: prof, aberta: aberta, total: contarFicheiros(p) });
+      if (aberta) linhasDe(p, prof + 1, saida);
+    });
+  no.ficheiros.slice().sort((a, b) => modelo.nomeDe(a).localeCompare(modelo.nomeDe(b), 'pt', { numeric: true, sensitivity: 'base' }))
+    .forEach((c) => { saida.push({ tipo: 'ficheiro', caminho: c, nome: modelo.nomeDe(c), prof: prof }); });
+}
+
+function selecionadoOuHerdado(caminho) {
+  if (!selecao) return false;
+  if (selecao.has(caminho)) return true;
+  let r = false;
+  selecao.forEach((s) => { if (caminho.indexOf(s + '/') === 0) r = true; });
+  return r;
+}
+
+function nomeHTML(nome) {
+  const i = nome.lastIndexOf('.');
+  if (i <= 0) return '<span class="nb">' + esc(nome) + '</span>';
+  return '<span class="nb">' + esc(nome.slice(0, i)) + '</span><span class="ne">' + esc(nome.slice(i)) + '</span>';
+}
+
+function linhaHTML(l) {
+  const recuo = 4 + l.prof * 16;
+  const c = esc(l.caminho);
+  const sel = selecionadoOuHerdado(l.caminho);
+  let inicio;
+  if (selecao) inicio = '<span class="caixa-sel' + (sel ? ' marcada' : '') + '">' + (sel ? IC_CHECK : '') + '</span>';
+  else if (l.tipo === 'pasta') inicio = '<span class="chevron' + (l.aberta ? ' aberta' : '') + '">' + IC_CHEVRON + '</span>';
+  else inicio = '<span class="espaco"></span>';
+
+  if (l.tipo === 'pasta') {
+    return '<div class="linha pasta' + (sel ? ' sel' : '') + '" data-tipo="pasta" data-caminho="' + c + '" style="padding-left:' + recuo + 'px">' +
+      inicio + '<span class="icone">' + (l.aberta ? IC_PASTA_ABERTA : IC_PASTA) + '</span>' +
+      '<span class="nome"><span class="nb">' + esc(l.nome) + '</span></span>' +
+      '<span class="meta">' + l.total + '</span>' +
+      (selecao ? '' : '<button class="mais" data-acao="menu-item" data-caminho="' + c + '" aria-label="Opções">' + IC_MAIS + '</button>') +
+      '</div>';
+  }
+  return '<div class="linha ficheiro' + (l.caminho === atual ? ' ativa' : '') + (sel ? ' sel' : '') +
+    '" data-tipo="ficheiro" data-caminho="' + c + '" style="padding-left:' + recuo + 'px">' +
+    inicio + iconeArq(l.caminho) +
+    '<span class="nome">' + nomeHTML(l.nome) + '</span>' +
+    (selecao ? '' : '<button class="mais" data-acao="menu-item" data-caminho="' + c + '" aria-label="Opções">' + IC_MAIS + '</button>') +
+    '</div>';
+}
+
+function resultadoHTML(caminho) {
+  const pasta = modelo.pastaDe(caminho);
+  return '<div class="linha ficheiro" data-tipo="ficheiro" data-caminho="' + esc(caminho) + '" style="padding-left:4px">' +
+    '<span class="espaco"></span>' + iconeArq(caminho) +
+    '<span class="nome">' + nomeHTML(modelo.nomeDe(caminho)) + '</span>' +
+    (pasta ? '<span class="meta">' + esc(pasta) + '</span>' : '') +
+    '</div>';
+}
+
+function renderizarLista() {
+  const lista = $('lista');
+  const termo = pesquisaAberta ? $('pesquisa-input').value : '';
+  if (termo.trim()) {
+    const r = modelo.pesquisar(F, termo);
+    lista.innerHTML = r.length ? '<div class="arv">' + r.map(resultadoHTML).join('') + '</div>' : '<div class="vazio">Nada encontrado para "' + esc(termo.trim()) + '".</div>';
+    return;
+  }
+
+  const raiz = construirArvore();
+  const linhas = [];
+  linhasDe(raiz, 0, linhas);
+  if (!linhas.length) {
+    lista.innerHTML = '<div class="vazio">Ainda não há ficheiros.<br>Toca em novo ficheiro, no cabeçalho.</div>';
+    return;
+  }
+  lista.innerHTML = '<div class="arv">' + linhas.map(linhaHTML).join('') + '</div>';
+}
+
+function renderizarRodape() {
+  const chaves = Object.keys(F).filter((c) => !modelo.ehMarcador(c));
+  const pastas = modelo.pastasDe(F).length;
+  let bytes = 0;
+  chaves.forEach((c) => { bytes += new Blob([F[c]]).size; });
+  $('rodape').textContent = pastas + (pastas === 1 ? ' pasta' : ' pastas') + ' · ' + chaves.length + (chaves.length === 1 ? ' ficheiro' : ' ficheiros') + ' · ' + modelo.tamanhoLegivel(bytes);
+}
+
+function renderizarBarraSelecao() {
+  const barra = $('barra-selecao');
+  barra.classList.toggle('show', !!selecao);
+  $('cabecalho').style.display = selecao ? 'none' : 'flex';
+  if (selecao) {
+    const n = selecao.size;
+    $('selecao-contagem').textContent = n;
+    $('btn-sel-mover').disabled = n === 0;
+    $('btn-sel-apagar').disabled = n === 0;
+  }
+}
+
+function renderizar() {
+  renderizarLista();
+  renderizarRodape();
+  renderizarBarraSelecao();
+}
+
+function alternarPesquisa() {
+  pesquisaAberta = !pesquisaAberta;
+  $('barra-pesquisa').classList.toggle('show', pesquisaAberta);
+  if (pesquisaAberta) $('pesquisa-input').focus();
+  else $('pesquisa-input').value = '';
+  renderizarLista();
+}
+function iniciarSelecao(caminho) { selecao = new Set(caminho ? [caminho] : []); renderizar(); }
+function sairSelecao() { if (!selecao) return; selecao = null; renderizar(); }
+function alternarSelecao(caminho) {
+  if (!selecao) return;
+  if (selecao.has(caminho)) selecao.delete(caminho);
+  else {
+    let herdado = false;
+    selecao.forEach((s) => { if (caminho.indexOf(s + '/') === 0) herdado = true; });
+    if (herdado) return;
+    Array.from(selecao).forEach((s) => { if (s.indexOf(caminho + '/') === 0) selecao.delete(s); });
+    selecao.add(caminho);
+  }
+  renderizar();
+}
+
+function aplicarDiffLocal(base, diff) {
+  const n = Object.assign({}, base);
+  (diff.apagar || []).forEach((k) => { delete n[k]; });
+  Object.keys(diff.escrever || {}).forEach((k) => { n[k] = diff.escrever[k]; });
+  return n;
+}
+function mostrarToast(texto, comDesfazer) {
+  $('toast-texto').textContent = texto;
+  $('toast-desfazer').style.display = comDesfazer ? 'inline-block' : 'none';
+  $('toast').classList.add('show');
+  clearTimeout(toastId);
+  toastId = setTimeout(() => $('toast').classList.remove('show'), comDesfazer ? 6000 : 2600);
+}
+function aplicar(r, atualAntes) {
+  if (!r.ok) return false;
+  F = r.novo;
+  if (r.atual !== undefined) atual = r.atual;
+  enviarAplicar(r.diff);
+  desfazerAcao = { diff: r.inverso, atual: atualAntes };
+  mostrarToast(r.mensagem || 'Feito.', true);
+  renderizar();
+  if (r.abrir && !ehImagem(r.abrir)) abrirFicheiro(r.abrir);
+  return true;
+}
+function desfazer() {
+  if (!desfazerAcao) return;
+  const d = desfazerAcao;
+  desfazerAcao = null;
+  F = aplicarDiffLocal(F, d.diff);
+  if (d.atual !== undefined) atual = d.atual;
+  enviarAplicar(d.diff);
+  $('toast').classList.remove('show');
+  renderizar();
+}
+function verImagem(caminho) {
+  mostrarDialogo(modelo.nomeDe(caminho),
+    '<div class="vis-img"><img id="vis-img" alt="" src="' + srcImagem(caminho) + '"></div><div class="cx-sub" id="vis-dim" style="padding:8px 0 0"></div>',
+    '<button class="btn-cx primario" data-acao="fechar-camada">Fechar</button>', null);
+  const im = $('vis-img');
+  const mostrar = () => {
+    const d = $('vis-dim');
+    if (!d) return;
+    const kb = Math.round(F[caminho].length * 0.75 / 1024);
+    d.textContent = im.naturalWidth ? im.naturalWidth + ' x ' + im.naturalHeight + ' px  ·  ' + kb + ' KB' : '';
+  };
+  im.onload = mostrar;
+  im.onerror = () => { const d = $('vis-dim'); if (d) d.textContent = 'Não foi possível mostrar esta imagem.'; };
+}
+function abrirFicheiro(caminho) {
+  if (F[caminho] === undefined) return;
+  if (ehImagem(caminho)) { verImagem(caminho); return; }
+  atual = caminho;
+  enviarAbrir(caminho);
+  enviarFechar();
+}
+
+let timerCamada = null;
+function mostrarCamada(html, tipo, ctx) {
+  clearTimeout(timerCamada);
+  camadaAtual = { tipo: tipo, ctx: ctx || {} };
+  const el = $('camada');
+  el.classList.remove('saindo');
+  el.innerHTML = html;
+  el.classList.add('show');
+}
+function fecharCamada() {
+  if (!camadaAtual) return;
+  camadaAtual = null;
+  const el = $('camada');
+  el.classList.add('saindo');
+  clearTimeout(timerCamada);
+  timerCamada = setTimeout(() => { el.classList.remove('show', 'saindo'); el.innerHTML = ''; }, 170);
+}
+function mostrarDialogo(titulo, corpoHTML, rodapeHTML, ctx, sub) {
+  mostrarCamada('<div class="fundo" data-acao="fechar-camada"></div><div class="centro"><div class="cartao dialogo">' +
+    '<div class="cx-titulo">' + esc(titulo) + '</div>' + (sub ? '<div class="cx-sub">' + esc(sub) + '</div>' : '') +
+    '<div class="cx-corpo">' + corpoHTML + '</div><div class="cx-rodape">' + rodapeHTML + '</div></div></div>', 'dialogo', ctx);
+}
+function mostrarLista(titulo, sub, listaHTML, ctx) {
+  mostrarCamada('<div class="fundo" data-acao="fechar-camada"></div><div class="centro"><div class="cartao dialogo">' +
+    '<div class="cx-titulo">' + esc(titulo) + '</div>' + (sub ? '<div class="cx-sub">' + esc(sub) + '</div>' : '') +
+    '<div class="lista-menu">' + listaHTML + '</div>' +
+    '<div class="cx-rodape"><button class="btn-cx" data-acao="fechar-camada">Cancelar</button></div></div></div>', 'lista', ctx);
+}
+function mostrarPopup(ancora, corpoHTML, ctx) {
+  mostrarCamada('<div class="fundo claro" data-acao="fechar-camada"></div><div class="cartao popup" id="popup">' + corpoHTML + '</div>', 'popup', ctx);
+  const card = $('popup');
+  const r = ancora.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight, m = 8;
+  const w = card.offsetWidth, h = card.offsetHeight;
+  const left = Math.max(m, Math.min(r.right - w, vw - w - m));
+  let top = r.bottom + 2, oy = 'top';
+  if (top + h > vh - m) {
+    top = r.top - h - 2; oy = 'bottom';
+    if (top < m) top = Math.max(m, vh - h - m);
+  }
+  card.style.left = left + 'px';
+  card.style.top = top + 'px';
+  card.style.transformOrigin = Math.round(r.left + r.width / 2 - left) + 'px ' + oy;
+}
+function itemMenu(acao, rotulo, icone, extra, perigo) {
+  return '<button class="item-menu' + (perigo ? ' perigo' : '') + '" data-acao="' + acao + '"' + (extra || '') + '>' +
+    '<span class="item-menu-icone">' + (icone || '') + '</span>' + esc(rotulo) + '</button>';
+}
+const eDir = (c) => F[c] === undefined && modelo.existePasta(F, c);
+
+function menuDoItem(caminho, ancora) {
+  const c = ' data-caminho="' + esc(caminho) + '"';
+  if (eDir(caminho)) {
+    mostrarPopup(ancora,
+      itemMenu('novo-ficheiro-aqui', 'Novo ficheiro aqui', MI.novoFicheiro, c) + itemMenu('nova-pasta-aqui', 'Nova pasta aqui', MI.novaPasta, c) +
+      itemMenu('importar-aqui', 'Importar para aqui', MI.importar, c) +
+      itemMenu('renomear', 'Renomear', MI.renomear, c) + itemMenu('mover', 'Mover para...', MI.mover, c) +
+      itemMenu('duplicar', 'Duplicar', MI.duplicar, c) + itemMenu('apagar', 'Apagar pasta', MI.apagar, c, true), { caminho: caminho });
+  } else {
+    mostrarPopup(ancora,
+      itemMenu('abrir-item', 'Abrir', MI.abrir, c) +
+      itemMenu('renomear', 'Renomear', MI.renomear, c) + itemMenu('mover', 'Mover para...', MI.mover, c) +
+      itemMenu('duplicar', 'Duplicar', MI.duplicar, c) + itemMenu('selecionar-item', 'Selecionar vários', MI.selecionar, c) +
+      itemMenu('apagar', 'Apagar', MI.apagar, c, true), { caminho: caminho });
+  }
+}
+function menuDoCabecalho(ancora) {
+  mostrarPopup(ancora,
+    itemMenu('importar-aqui', 'Importar do dispositivo', MI.importar, ' data-caminho="' + esc(pastaPadrao()) + '"') +
+    itemMenu('selecionar-varios', 'Selecionar vários', MI.selecionar) +
+    itemMenu('expandir-tudo', 'Expandir pastas', MI.expandir) +
+    itemMenu('recolher-tudo', 'Recolher pastas', MI.recolher));
+}
+
+function dialogoNovoFicheiro(pasta) {
+  mostrarDialogo('Novo ficheiro',
+    '<input id="campo-nome" class="campo" placeholder="ecra.nl" autocomplete="off" autocapitalize="off"><div class="campo-erro" id="campo-erro"></div>',
+    '<button class="btn-cx" data-acao="fechar-camada">Cancelar</button><button class="btn-cx primario" data-acao="confirmar-novo-ficheiro">Criar</button>',
+    { pasta: pasta }, 'em ' + (pasta || 'raiz do projeto'));
+  $('campo-nome').focus();
+}
+function dialogoNovaPasta(pasta) {
+  mostrarDialogo('Nova pasta',
+    '<input id="campo-nome" class="campo" placeholder="NomeDaPasta" autocomplete="off" autocapitalize="off"><div class="campo-erro" id="campo-erro"></div>',
+    '<button class="btn-cx" data-acao="fechar-camada">Cancelar</button><button class="btn-cx primario" data-acao="confirmar-nova-pasta">Criar</button>',
+    { pasta: pasta }, 'em ' + (pasta || 'raiz do projeto'));
+  $('campo-nome').focus();
+}
+function dialogoSalvarComo(pasta) {
+  mostrarDialogo('Salvar como',
+    '<input id="campo-nome" class="campo" placeholder="ecra.nl" autocomplete="off" autocapitalize="off"><div class="campo-erro" id="campo-erro"></div>',
+    '<button class="btn-cx" data-acao="fechar-camada">Cancelar</button><button class="btn-cx primario" data-acao="confirmar-salvar-como">Salvar</button>',
+    { pasta: pasta }, 'em ' + (pasta || 'raiz do projeto'));
+  $('campo-nome').focus();
+}
+function dialogoRenomear(item) {
+  mostrarDialogo('Renomear',
+    '<input id="campo-nome" class="campo" value="' + esc(modelo.nomeDe(item)) + '" autocomplete="off" autocapitalize="off"><div class="campo-erro" id="campo-erro"></div>',
+    '<button class="btn-cx" data-acao="fechar-camada">Cancelar</button><button class="btn-cx primario" data-acao="confirmar-renomear">Renomear</button>',
+    { item: item });
+  const campo = $('campo-nome');
+  campo.focus();
+  const nome = modelo.nomeDe(item);
+  const ext = eDir(item) ? '' : nome.slice(nome.lastIndexOf('.'));
+  campo.setSelectionRange(0, ext && nome.lastIndexOf('.') > 0 ? nome.length - ext.length : nome.length);
+}
+function dialogoApagar(itens) {
+  let n = 0;
+  itens.forEach((i) => { n += (F[i] !== undefined ? 1 : Object.keys(F).filter((c) => c.indexOf(i + '/') === 0 && !modelo.ehMarcador(c)).length); });
+  const nomes = itens.slice(0, 3).map((i) => '<b>' + esc(modelo.nomeDe(i)) + '</b>').join(', ') + (itens.length > 3 ? ' e mais ' + (itens.length - 3) : '');
+  mostrarDialogo('Apagar',
+    '<div>Apagar ' + nomes + (n > 1 ? ' (' + n + ' ficheiros)' : '') + '?</div><div class="campo-erro" style="color:var(--muted)">Podes desfazer logo a seguir.</div>',
+    '<button class="btn-cx" data-acao="fechar-camada">Cancelar</button><button class="btn-cx perigo" data-acao="confirmar-apagar">Apagar</button>',
+    { itens: itens });
+}
+function dialogoMover(itens) {
+  const pastas = [''].concat(modelo.pastasDe(F));
+  const html = pastas.map((p) => {
+    const bloqueada = itens.some((i) => eDir(i) && (p === i || p.indexOf(i + '/') === 0)) || itens.every((i) => modelo.pastaDe(i) === p);
+    const prof = p ? p.split('/').length : 0;
+    return '<button class="destino" data-acao="escolher-destino" data-destino="' + esc(p) + '"' + (bloqueada ? ' disabled' : '') +
+      ' style="padding-left:' + (18 + prof * 16) + 'px">' + IC_PASTA + esc(p ? modelo.nomeDe(p) : 'Raiz do projeto') + '</button>';
+  }).join('');
+  mostrarLista('Mover para', itens.length === 1 ? modelo.nomeDe(itens[0]) : itens.length + ' itens', html, { itens: itens });
+}
+
+function pastaPadrao() { return atual ? modelo.pastaDe(atual) : ''; }
+function lerCampo() { return ($('campo-nome').value || '').trim(); }
+function erroCampo(msg) { $('campo-erro').textContent = msg || ''; }
+
+const ACOES = {
+  'alternar-pesquisa': alternarPesquisa,
+  'menu-cabecalho': (el) => menuDoCabecalho(el),
+  'salvar': () => {
+    const p = ponte();
+    if (!p || !p.salvar) return;
+    if (p.salvar() === 'nome') dialogoSalvarComo(pastaPadrao());
+    else mostrarToast('Salvo.', false);
+  },
+  'novo-ficheiro': () => dialogoNovoFicheiro(pastaPadrao()),
+  'nova-pasta': () => dialogoNovaPasta(pastaPadrao()),
+  'desfazer': desfazer,
+  'fechar-camada': fecharCamada,
+  'menu-item': (el) => menuDoItem(el.dataset.caminho, el),
+  'abrir-item': (el) => { fecharCamada(); abrirFicheiro(el.dataset.caminho); },
+  'importar-aqui': (el) => {
+    const pasta = el.dataset.caminho || '';
+    fecharCamada();
+    if (pasta) abertas.add(pasta);
+    const p = ponte();
+    if (p && p.importarDoDisco) p.importarDoDisco(pasta);
+    else mostrarToast('Importar indisponível.', false);
+  },
+  'novo-ficheiro-aqui': (el) => { abertas.add(el.dataset.caminho); dialogoNovoFicheiro(el.dataset.caminho); },
+  'nova-pasta-aqui': (el) => { abertas.add(el.dataset.caminho); dialogoNovaPasta(el.dataset.caminho); },
+  'renomear': (el) => dialogoRenomear(el.dataset.caminho),
+  'mover': (el) => dialogoMover([el.dataset.caminho]),
+  'duplicar': (el) => { fecharCamada(); aplicar(modelo.opDuplicar(F, el.dataset.caminho), atual); },
+  'apagar': (el) => dialogoApagar([el.dataset.caminho]),
+  'selecionar-item': (el) => { fecharCamada(); iniciarSelecao(el.dataset.caminho); },
+  'selecionar-varios': () => { fecharCamada(); iniciarSelecao(null); },
+  'expandir-tudo': () => { modelo.pastasDe(F).forEach((p) => abertas.add(p)); fecharCamada(); renderizarLista(); },
+  'recolher-tudo': () => { abertas.clear(); fecharCamada(); renderizarLista(); },
+  'confirmar-novo-ficheiro': () => {
+    let nome = lerCampo();
+    if (!nome) return erroCampo('Escreve um nome.');
+    if (nome.lastIndexOf('.') <= 0) nome += '.nl';
+    const r = modelo.opCriarFicheiro(F, camadaAtual.ctx.pasta, nome);
+    if (!r.ok) return erroCampo(r.erro);
+    const pasta = camadaAtual.ctx.pasta;
+    fecharCamada();
+    if (pasta) abertas.add(pasta);
+    aplicar(r, atual);
+  },
+  'confirmar-salvar-como': () => {
+    let nome = lerCampo();
+    if (!nome) return erroCampo('Escreve um nome.');
+    if (nome.lastIndexOf('.') <= 0) nome += '.nl';
+    const e = modelo.validarNome(nome, false);
+    if (e) return erroCampo(e);
+    const pasta = camadaAtual.ctx.pasta;
+    const caminho = modelo.juntar(pasta, nome);
+    if (tem(F, caminho)) return erroCampo('Já existe um ficheiro com esse nome.');
+    fecharCamada();
+    if (pasta) abertas.add(pasta);
+    const p = ponte();
+    if (p && p.salvarComo) p.salvarComo(caminho);
+  },
+  'confirmar-nova-pasta': () => {
+    const r = modelo.opCriarPasta(F, camadaAtual.ctx.pasta, lerCampo());
+    if (!r.ok) return erroCampo(r.erro);
+    fecharCamada();
+    abertas.add(r.pasta);
+    aplicar(r, atual);
+  },
+  'confirmar-renomear': () => {
+    const r = modelo.opRenomear(F, camadaAtual.ctx.item, lerCampo(), atual);
+    if (!r.ok) return erroCampo(r.erro);
+    const item = camadaAtual.ctx.item;
+    if (abertas.has(item)) { abertas.delete(item); abertas.add(modelo.juntar(modelo.pastaDe(item), lerCampo())); }
+    fecharCamada();
+    aplicar(r, atual);
+  },
+  'confirmar-apagar': () => {
+    const itens = camadaAtual.ctx.itens;
+    fecharCamada();
+    aplicar(modelo.opApagar(F, itens, atual), atual);
+    if (selecao) sairSelecao();
+  },
+  'escolher-destino': (el) => {
+    const itens = camadaAtual.ctx.itens;
+    const destino = el.dataset.destino;
+    const r = modelo.opMover(F, itens, destino, atual);
+    fecharCamada();
+    if (!r.ok) { mostrarToast(r.erro, false); return; }
+    if (destino) abertas.add(destino);
+    aplicar(r, atual);
+    if (selecao) sairSelecao();
+  },
+  'selecao-cancelar': sairSelecao,
+  'selecao-mover': () => { if (selecao && selecao.size) dialogoMover(Array.from(selecao)); },
+  'selecao-apagar': () => { if (selecao && selecao.size) dialogoApagar(Array.from(selecao)); }
+};
+
+document.addEventListener('click', (e) => {
+  const alvo = e.target.closest('[data-acao]');
+  if (alvo) {
+    if (alvo.disabled) return;
+    const fn = ACOES[alvo.dataset.acao];
+    if (fn) fn(alvo);
+    return;
+  }
+  if (e.target.closest('#camada')) return;
+  const linha = e.target.closest('.linha');
+  if (!linha) return;
+  if (pressFeito) { pressFeito = false; return; }
+  const caminho = linha.dataset.caminho;
+  const tipo = linha.dataset.tipo;
+  if (selecao) { alternarSelecao(caminho); return; }
+  if (tipo === 'pasta') {
+    if (abertas.has(caminho)) abertas.delete(caminho); else abertas.add(caminho);
+    renderizarLista();
+    return;
+  }
+  abrirFicheiro(caminho);
+});
+
+let pressTimer = null, pressX = 0, pressY = 0, pressFeito = false;
+function limparPress() { clearTimeout(pressTimer); pressTimer = null; }
+$('lista').addEventListener('pointerdown', (e) => {
+  const linha = e.target.closest('.linha');
+  if (!linha || e.target.closest('.mais') || selecao) return;
+  pressX = e.clientX; pressY = e.clientY; pressFeito = false;
+  limparPress();
+  pressTimer = setTimeout(() => {
+    pressFeito = true;
+    try { if (navigator.vibrate) navigator.vibrate(15); } catch (er) {}
+    iniciarSelecao(linha.dataset.caminho);
+  }, 450);
+});
+$('lista').addEventListener('pointermove', (e) => {
+  if (pressTimer && (Math.abs(e.clientX - pressX) > 8 || Math.abs(e.clientY - pressY) > 8)) limparPress();
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach((n) => $('lista').addEventListener(n, limparPress));
+$('lista').addEventListener('contextmenu', (e) => e.preventDefault());
+
+$('camada').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !camadaAtual || camadaAtual.tipo !== 'dialogo') return;
+  const b = document.querySelector('#camada .btn-cx.primario, #camada .btn-cx.perigo');
+  if (b) b.click();
+});
+$('pesquisa-input').addEventListener('input', () => { clearTimeout(window.__pTimer); window.__pTimer = setTimeout(renderizarLista, 150); });
+
+function revelar(caminho) {
+  if (!caminho) return;
+  const partes = caminho.split('/');
+  partes.pop();
+  let acc = '';
+  partes.forEach((p) => { acc = acc ? acc + '/' + p : p; abertas.add(acc); });
+}
+
+window.definirEstado = function (jsonEstado) {
+  let m;
+  try { m = JSON.parse(jsonEstado); } catch (e) { return; }
+  F = m.ficheiros && typeof m.ficheiros === 'object' ? m.ficheiros : {};
+  atual = m.atual || null;
+  if (m.reabrir) { fecharCamada(); sairSelecao(); pesquisaAberta = false; $('barra-pesquisa').classList.remove('show'); }
+  if (m.reabrir) revelar(atual);
+  if (selecao) Array.from(selecao).forEach((s) => { if (F[s] === undefined && !modelo.existePasta(F, s)) selecao.delete(s); });
+  renderizar();
+};
+
+window.voltarNaArvore = function () {
+  if (camadaAtual) { fecharCamada(); return true; }
+  if (selecao) { sairSelecao(); return true; }
+  if (pesquisaAberta) { alternarPesquisa(); return true; }
+  return false;
+};
+})();
+</script>
+</body>
+</html>
