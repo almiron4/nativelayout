@@ -150,8 +150,8 @@ jobs:
           cat > "$APP/app/src/test/java/com/example/testelayou/TasksScreenTest.kt" <<'EOF'
           package com.example.testelayou
 
-          import co.adilson889.nativelayout.core.Expander
-          import co.adilson889.nativelayout.core.LayoutEngine
+          import nativelayout.core.Expander
+          import nativelayout.core.LayoutEngine
           import java.io.File
           import org.junit.Assert.assertTrue
           import org.junit.Test
