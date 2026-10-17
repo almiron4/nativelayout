@@ -4,7 +4,7 @@
 
 <body>
     <h1>Teste de carga</h1>
-    <p class="muted">{total} itens, cerca de {nos} nรณs</p>
+    <p class="muted">{total} itens, cerca de {nos} nós</p>
 
     <div class="chips">
         for t in tamanhos:
