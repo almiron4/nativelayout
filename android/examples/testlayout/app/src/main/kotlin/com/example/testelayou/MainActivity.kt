@@ -1,5 +1,6 @@
 package com.example.testelayou
 
+
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.graphics.Color
@@ -15,14 +16,15 @@ import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import co.adilson889.nativelayout.android.NativeView
-// Se estes 3 imports derem "Unresolved reference", adiciona ao build.gradle:
-// implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.2")
-import co.adilson889.nativelayout.core.Expander
-import co.adilson889.nativelayout.core.LayoutDiffer
-import co.adilson889.nativelayout.core.LayoutEngine
-import co.adilson889.nativelayout.core.Native
-import co.adilson889.nativelayout.core.nativeChildren
+
+import nativelayout.NativeView
+import nativelayout.core.Expander
+import nativelayout.core.LayoutDiffer
+import nativelayout.core.LayoutEngine
+import nativelayout.core.Native
+import nativelayout.core.nativeChildren
+
+
 
 class MainActivity : Activity() {
     private lateinit var ui: NativeView
