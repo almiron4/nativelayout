@@ -1,0 +1,44 @@
+# Author: Adilson C. Rafael (adilson889)
+# Date: 2026-10-18
+
+name: License headers
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check = only list the files without the notice; fix = add the notice and commit"
+        type: choice
+        options:
+          - fix
+          - check
+        default: fix
+
+permissions:
+  contents: write
+
+jobs:
+  headers:
+    name: MPL 2.0 notice in every Kotlin file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check
+        if: github.event_name == 'pull_request' || inputs.mode == 'check'
+        run: python3 scripts/license_headers.py --check
+
+      - name: Add the notice and commit
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'fix'
+        run: |
+          set -euo pipefail
+          python3 scripts/license_headers.py
+          if git diff --quiet; then
+            echo "Nothing to change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Add MPL 2.0 license notice to Kotlin files"
+          git push
