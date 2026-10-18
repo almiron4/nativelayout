@@ -81,6 +81,10 @@ android/           Kotlin implementation
 Each language lives in its own folder at the repository root (<code>android/</code>, and later <code>python/</code>, <code>ios/</code>, and so on). A language folder is self-contained: its own build files, its own <code>README.md</code> and its own <code>examples/</code>. Nothing in one language folder may depend on another.
 </p>
 
+<p align="justify">
+The editor app does not depend on the <code>core</code> and <code>android</code> modules: <code>android/app/src/main/kotlin/nativelayout/</code> holds copies of their sources. When you change a file in <code>android/core</code> or <code>android/android</code>, copy it to the same place in <code>android/app</code> in the same commit, or the editor preview will not show your change.
+</p>
+
 ---
 
 ## 4. Set up the Android implementation
@@ -111,6 +115,14 @@ gradle :app:assembleDebug
 ```
 
 The APK is in `android/app/build/outputs/apk/debug/`.
+
+### Test the core
+
+```
+gradle :core:test
+```
+
+The tests in `android/core/src/test/` expand and build small screens in plain JVM, so they need no device.
 
 ### Build and install the library locally
 
@@ -187,6 +199,7 @@ Changes to `SPEC.md` follow these rules:
 
 - [ ] The change does one thing.
 - [ ] The CI workflow passes, including the job `Build example (testlayout) against this commit`.
+- [ ] The core tests pass (`gradle :core:test`), and a new CSS property has a case in `CssFeaturesTest`.
 - [ ] If behavior changed, `SPEC.md` is updated in the same pull request.
 - [ ] If an error message changed, the table in `SPEC.md` section 10 matches.
 - [ ] If the API changed, the API tables in `README.md` and `android/README.md` match.
@@ -221,6 +234,17 @@ Use the comment syntax of the language (`#` for YAML and Python).
 - `core` is pure JVM: it must not import anything from `android.*`. Anything that touches the platform belongs in the `android` module behind the `LayoutHost` interface.
 - Errors that come from the user's `.nl` file are `NativeLayoutError`s with a message and a line number. Do not throw a bare exception for a bad `.nl`.
 - A public function that other languages must also have goes in the verb table of `SPEC.md` section 8.
+
+### Adding a CSS property
+
+1. Read it in `applyDeclaration` of `LayoutEngine.kt`. An invalid value gives a warning and is ignored, never an exception.
+2. Add a field with a default value to `NativeStyle` in `NativeTree.kt`. The diff compares the whole style, so it picks the new field up by itself. If the property is inherited, also copy it in `inherit()` of `LayoutEngine.kt`.
+3. Apply it in `AndroidLayoutHost.kt` (`applyStyle` and the functions it calls).
+4. Document it in `SPEC.md` section 4.3 and in the style list of `README.md`.
+5. Add a case to `CssFeaturesTest` for the valid value, an invalid value and, if it is inherited, the inheritance.
+6. Copy the changed files to `android/app/src/main/kotlin/nativelayout/`.
+
+A selector state (`:pressed`, `:disabled`, `:focus`) or an `@media` condition is read in `Expander.kt`, not in the engine: the expander writes the result into the `style` attributes (`style-pressed`, `style-disabled`, `style-focus`).
 
 ### Documentation
 
@@ -331,7 +355,7 @@ The workflow `.github/workflows/build.yml` runs on every push and pull request.
 
 | Job | What it does |
 |---|---|
-| `Build editor APK` | builds `android/app` and uploads the APK |
+| `Build editor APK` | runs the core tests (`gradle :core:test`), builds `android/app` and uploads the APK |
 | `Build example (testlayout) against this commit` | publishes the library from your commit to Maven local, points the project in `android/examples/testlayout/` at it, builds the APK and uploads it |
 
 If a job fails:
