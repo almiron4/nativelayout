@@ -14,23 +14,30 @@ import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Outline
+import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Build
 import android.text.InputType
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.AbsoluteSizeSpan
 import android.text.style.ForegroundColorSpan
+import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
+import android.text.style.UnderlineSpan
 import android.util.AttributeSet
 import android.util.Base64
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
 import android.widget.Button
 import android.widget.CheckBox
@@ -241,14 +248,12 @@ class AndroidLayoutHost(
         when (val n = a.node) {
             is NativeButton -> (entry.view as? Button)?.let { configureButton(it, n) }
             is NativeField -> (entry.view as? EditText)?.let { configureField(it, n) }
-            is NativeCheckbox -> (entry.view as? CheckBox)?.let {
-                it.isEnabled = !n.disabled
-                it.alpha = if (n.disabled) 0.5f else 1f
-            }
+            is NativeCheckbox -> (entry.view as? CheckBox)?.let { it.isEnabled = !n.disabled }
             is NativeImage -> (entry.view as? ImageView)?.let { configureImage(it, n) }
             is NativeItem -> ((entry.view as? ViewGroup)?.getChildAt(0) as? TextView)?.text = n.marker + " "
             else -> {}
         }
+        applyAlpha(entry)
         bindEvents(entry)
     }
 
@@ -267,18 +272,18 @@ class AndroidLayoutHost(
                     val vl = VirtualList(context)
                     ViewEntry(vl, null, node.style, node, vl)
                 } else {
-                    val box = LinearLayout(context)
+                    val box = NLBox(context)
                     ViewEntry(box, box, node.style, node)
                 }
             }
             is NativeList -> {
-                val list = LinearLayout(context)
+                val list = NLBox(context)
                 ViewEntry(list, list, node.style, node)
             }
             is NativeItem -> {
                 val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
                 val markerView = TextView(context).apply { text = node.marker + " " }
-                val content = LinearLayout(context)
+                val content = NLBox(context)
                 row.addView(markerView, LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
                 ))
@@ -311,7 +316,6 @@ class AndroidLayoutHost(
                 val cb = CheckBox(context)
                 cb.isChecked = node.checked
                 cb.isEnabled = !node.disabled
-                cb.alpha = if (node.disabled) 0.5f else 1f
                 ViewEntry(cb, null, node.style, node)
             }
             is NativeImage -> {
@@ -363,7 +367,6 @@ class AndroidLayoutHost(
     private fun configureButton(b: Button, node: NativeButton) {
         b.text = node.label
         b.isEnabled = !node.disabled
-        b.alpha = if (node.disabled) 0.5f else 1f
     }
 
     private fun configureField(et: EditText, node: NativeField) {
@@ -381,7 +384,6 @@ class AndroidLayoutHost(
             et.gravity = Gravity.TOP or Gravity.START
         }
         et.isEnabled = !node.disabled
-        et.alpha = if (node.disabled) 0.5f else 1f
         et.isFocusable = !node.readOnly
         et.isFocusableInTouchMode = !node.readOnly
         et.isCursorVisible = !node.readOnly
@@ -425,9 +427,90 @@ class AndroidLayoutHost(
                 sb.setSpan(ForegroundColorSpan(t.color), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sb.setSpan(AbsoluteSizeSpan(pxF(t.size).roundToInt(), false), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 if (t.bold) sb.setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                if (t.italic) sb.setSpan(StyleSpan(Typeface.ITALIC), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                if (t.underline) sb.setSpan(UnderlineSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                if (t.strike) sb.setSpan(StrikethroughSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
         return sb
+    }
+
+    private fun isDisabled(n: Native): Boolean = when (n) {
+        is NativeButton -> n.disabled
+        is NativeField -> n.disabled
+        is NativeCheckbox -> n.disabled
+        else -> false
+    }
+
+    /** opacity, times the disabled look (0.5 unless :disabled gives its own opacity). */
+    private fun applyAlpha(entry: ViewEntry) {
+        val st = entry.style
+        var a = st.opacity
+        if (isDisabled(entry.node)) a *= st.states?.disabled?.opacity ?: 0.5f
+        entry.view.alpha = a
+    }
+
+    private fun typefaceOf(f: FontFamily): Typeface? = when (f) {
+        FontFamily.DEFAULT -> null
+        FontFamily.SANS -> Typeface.SANS_SERIF
+        FontFamily.SERIF -> Typeface.SERIF
+        FontFamily.MONOSPACE -> Typeface.MONOSPACE
+    }
+
+    private fun textColorsOf(st: NativeStyle): ColorStateList {
+        val pressed = st.states?.pressed?.textColor
+        val disabled = st.states?.disabled?.textColor
+        val focused = st.states?.focused?.textColor
+        if (pressed == null && disabled == null && focused == null) return ColorStateList.valueOf(st.textColor)
+        return ColorStateList(
+            arrayOf(
+                intArrayOf(-android.R.attr.state_enabled),
+                intArrayOf(android.R.attr.state_pressed),
+                intArrayOf(android.R.attr.state_focused),
+                intArrayOf()
+            ),
+            intArrayOf(disabled ?: st.textColor, pressed ?: st.textColor, focused ?: st.textColor, st.textColor)
+        )
+    }
+
+    private fun applyText(v: TextView, st: NativeStyle, n: Native) {
+        v.setTextColor(textColorsOf(st))
+        v.setTextSize(TypedValue.COMPLEX_UNIT_PX, pxF(st.fontSize))
+        val style = when {
+            st.bold && st.italic -> Typeface.BOLD_ITALIC
+            st.bold -> Typeface.BOLD
+            st.italic -> Typeface.ITALIC
+            else -> Typeface.NORMAL
+        }
+        v.setTypeface(typefaceOf(st.fontFamily), style)
+
+        val sizePx = pxF(st.fontSize)
+        v.letterSpacing = if (st.letterSpacing.value != 0f && sizePx > 0f) pxF(st.letterSpacing) / sizePx else 0f
+
+        val natural = v.paint.getFontMetricsInt(null)
+        when (val lh = st.lineHeight) {
+            null -> v.setLineSpacing(0f, 1f)
+            is LineHeight.Multiple -> v.setLineSpacing(lh.value * sizePx - natural, 1f)
+            is LineHeight.Fixed -> v.setLineSpacing(pxF(lh.length) - natural, 1f)
+        }
+
+        if (n !is NativeText) {
+            var flags = v.paintFlags and (Paint.UNDERLINE_TEXT_FLAG or Paint.STRIKE_THRU_TEXT_FLAG).inv()
+            if (st.underline) flags = flags or Paint.UNDERLINE_TEXT_FLAG
+            if (st.strike) flags = flags or Paint.STRIKE_THRU_TEXT_FLAG
+            v.paintFlags = flags
+        }
+
+        when (n) {
+            is NativeText -> v.gravity = textGravity(st)
+            is NativeButton -> v.gravity = buttonGravity(st)
+            else -> {}
+        }
+        if (v is EditText) {
+            v.setHintTextColor((st.textColor and 0x00FFFFFF) or 0x80000000.toInt())
+        }
+        v.maxWidth = st.maxWidth?.let { px(it) } ?: Int.MAX_VALUE
+        v.maxHeight = st.maxHeight?.let { px(it) } ?: Int.MAX_VALUE
     }
 
     private fun applyStyle(entry: ViewEntry) {
@@ -437,19 +520,15 @@ class AndroidLayoutHost(
 
         applyBackground(v, st, ripple = v is Button)
         v.setPadding(px(st.padding.left), px(st.padding.top), px(st.padding.right), px(st.padding.bottom))
+        applyAlpha(entry)
+        v.minimumWidth = st.minWidth?.let { px(it) } ?: 0
+        v.minimumHeight = st.minHeight?.let { px(it) } ?: 0
 
-        if (v is TextView) {
-            v.setTextColor(st.textColor)
-            v.setTextSize(TypedValue.COMPLEX_UNIT_PX, pxF(st.fontSize))
-            v.setTypeface(null, if (st.bold) Typeface.BOLD else Typeface.NORMAL)
-            when (n) {
-                is NativeText -> v.gravity = textGravity(st)
-                is NativeButton -> v.gravity = buttonGravity(st)
-                else -> {}
-            }
-            if (v is EditText) {
-                v.setHintTextColor((st.textColor and 0x00FFFFFF) or 0x80000000.toInt())
-            }
+        if (v is TextView) applyText(v, st, n)
+
+        if (v is ImageView) {
+            v.maxWidth = st.maxWidth?.let { px(it) } ?: Int.MAX_VALUE
+            v.maxHeight = st.maxHeight?.let { px(it) } ?: Int.MAX_VALUE
         }
 
         if (v is CheckBox) {
@@ -468,24 +547,87 @@ class AndroidLayoutHost(
 
         val container = entry.container
         if (container is LinearLayout) applyContainer(container, st)
+
+        // overflow: hidden clips to the rounded corners; box-shadow becomes elevation
+        if (st.overflowHidden) {
+            val radius = pxF(st.borderRadius)
+            v.outlineProvider = object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, radius)
+                }
+            }
+            v.clipToOutline = true
+        } else {
+            v.outlineProvider = ViewOutlineProvider.BACKGROUND
+            v.clipToOutline = false
+        }
+        v.elevation = pxF(st.elevation)
     }
 
+    private fun gradientOrientation(angle: Int): GradientDrawable.Orientation {
+        val a = (((angle % 360) + 360) % 360 + 22) / 45 * 45 % 360
+        return when (a) {
+            0 -> GradientDrawable.Orientation.BOTTOM_TOP
+            45 -> GradientDrawable.Orientation.BL_TR
+            90 -> GradientDrawable.Orientation.LEFT_RIGHT
+            135 -> GradientDrawable.Orientation.TL_BR
+            180 -> GradientDrawable.Orientation.TOP_BOTTOM
+            225 -> GradientDrawable.Orientation.TR_BL
+            270 -> GradientDrawable.Orientation.RIGHT_LEFT
+            else -> GradientDrawable.Orientation.BR_TL
+        }
+    }
+
+    /** The shape of the element. [background] and [border] override the colors (state styles). */
+    private fun shapeOf(e: NativeStyle, background: Int?, border: Int?): GradientDrawable {
+        val g = if (background == null) e.gradient else null
+        val shape = if (g != null) {
+            GradientDrawable(gradientOrientation(g.angle), g.colors.toIntArray())
+        } else {
+            GradientDrawable().apply {
+                setColor(background ?: (if (e.backgroundColor != 0) e.backgroundColor else Color.TRANSPARENT))
+            }
+        }
+        shape.cornerRadius = pxF(e.borderRadius)
+        if (e.borderWidth.value > 0f) shape.setStroke(maxOf(1, px(e.borderWidth)), border ?: e.borderColor)
+        return shape
+    }
+
+    private fun changesLook(s: StateStyle?): Boolean =
+        s != null && (s.backgroundColor != null || s.borderColor != null)
+
     private fun applyBackground(view: View, e: NativeStyle, ripple: Boolean) {
-        val hasBackground = e.backgroundColor != 0
+        val pressed = e.states?.pressed
+        val disabled = e.states?.disabled
+        val focused = e.states?.focused
+        val hasStates = changesLook(pressed) || changesLook(disabled) || changesLook(focused)
+        val hasBackground = e.backgroundColor != 0 || e.gradient != null
         val hasBorder = e.borderWidth.value > 0f
-        if (!hasBackground && !hasBorder && !ripple) {
+        if (!hasBackground && !hasBorder && !ripple && !hasStates) {
             view.background = null
             return
         }
-        val shape = GradientDrawable().apply {
-            setColor(if (hasBackground) e.backgroundColor else Color.TRANSPARENT)
-            cornerRadius = pxF(e.borderRadius)
-            if (hasBorder) setStroke(maxOf(1, px(e.borderWidth)), e.borderColor)
+        val base = shapeOf(e, null, null)
+        val content: Drawable = if (hasStates) {
+            val list = StateListDrawable()
+            if (changesLook(disabled)) {
+                list.addState(intArrayOf(-android.R.attr.state_enabled), shapeOf(e, disabled?.backgroundColor, disabled?.borderColor))
+            }
+            if (changesLook(pressed)) {
+                list.addState(intArrayOf(android.R.attr.state_pressed), shapeOf(e, pressed?.backgroundColor, pressed?.borderColor))
+            }
+            if (changesLook(focused)) {
+                list.addState(intArrayOf(android.R.attr.state_focused), shapeOf(e, focused?.backgroundColor, focused?.borderColor))
+            }
+            list.addState(intArrayOf(), base)
+            list
+        } else {
+            base
         }
         view.background = if (ripple && Build.VERSION.SDK_INT >= 21) {
-            RippleDrawable(ColorStateList.valueOf(0x33000000), shape, null)
+            RippleDrawable(ColorStateList.valueOf(0x33000000), content, null)
         } else {
-            shape
+            content
         }
     }
 
@@ -493,12 +635,14 @@ class AndroidLayoutHost(
         val vertical = e.direction == Direction.COLUMN
         lin.orientation = if (vertical) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
         lin.gravity = when (e.justify) {
-            Justify.START -> if (vertical) Gravity.TOP else Gravity.START
+            Justify.START, Justify.BETWEEN, Justify.AROUND, Justify.EVENLY ->
+                if (vertical) Gravity.TOP else Gravity.START
             Justify.CENTER -> if (vertical) Gravity.CENTER_VERTICAL else Gravity.CENTER_HORIZONTAL
             Justify.END -> if (vertical) Gravity.BOTTOM else Gravity.END
         }
         val gap = px(e.gap)
-        if (gap > 0) {
+        val wrapped = e.wrap && !vertical
+        if (gap > 0 && !wrapped) {
             lin.dividerDrawable = GradientDrawable().apply {
                 setSize(gap, gap)
                 setColor(Color.TRANSPARENT)
@@ -507,6 +651,14 @@ class AndroidLayoutHost(
         } else {
             lin.showDividers = LinearLayout.SHOW_DIVIDER_NONE
             lin.dividerDrawable = null
+        }
+        if (lin is NLBox) {
+            lin.maxWidthPx = e.maxWidth?.let { px(it) } ?: -1
+            lin.maxHeightPx = e.maxHeight?.let { px(it) } ?: -1
+            lin.justify = e.justify
+            lin.wrap = e.wrap
+            lin.gapPx = gap
+            lin.requestLayout()
         }
     }
 
@@ -530,12 +682,12 @@ class AndroidLayoutHost(
         fun justHoriz(j: Justify) = when (j) {
             Justify.CENTER -> Gravity.CENTER_HORIZONTAL
             Justify.END -> Gravity.END
-            Justify.START -> Gravity.START
+            else -> Gravity.START
         }
         fun justVert(j: Justify) = when (j) {
             Justify.CENTER -> Gravity.CENTER_VERTICAL
             Justify.END -> Gravity.BOTTOM
-            Justify.START -> Gravity.TOP
+            else -> Gravity.TOP
         }
 
         var h = when (e.textAlign) {
@@ -559,10 +711,11 @@ class AndroidLayoutHost(
             is Size.Dim -> px(m.length)
             else -> ViewGroup.LayoutParams.MATCH_PARENT
         }
+        val h = e.height
         val height = when {
             e.flex > 0f -> ViewGroup.LayoutParams.MATCH_PARENT
-            e.height is Size.Dim -> px(e.height.length)
-            e.height is Size.Percent && e.height.value >= 100f -> ViewGroup.LayoutParams.MATCH_PARENT
+            h is Size.Dim -> px(h.length)
+            h is Size.Percent && h.value >= 100f -> ViewGroup.LayoutParams.MATCH_PARENT
             else -> ViewGroup.LayoutParams.WRAP_CONTENT
         }
         return FrameLayout.LayoutParams(width, height).apply {
@@ -572,6 +725,7 @@ class AndroidLayoutHost(
 
     private fun childParams(e: NativeStyle, parent: NativeStyle): LinearLayout.LayoutParams {
         val parentVertical = parent.direction == Direction.COLUMN
+        val align = e.alignSelf ?: parent.alignItems
 
         fun mainSize(m: Size): Int = when (m) {
             is Size.Dim -> px(m.length)
@@ -584,7 +738,7 @@ class AndroidLayoutHost(
             is Size.Percent ->
                 if (m.value >= 100f) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
             Size.Auto ->
-                if (parent.alignItems == Align.STRETCH) ViewGroup.LayoutParams.MATCH_PARENT
+                if (align == Align.STRETCH) ViewGroup.LayoutParams.MATCH_PARENT
                 else ViewGroup.LayoutParams.WRAP_CONTENT
         }
 
@@ -603,7 +757,7 @@ class AndroidLayoutHost(
 
         val lp = LinearLayout.LayoutParams(width, height, weight)
         lp.setMargins(px(e.margin.left), px(e.margin.top), px(e.margin.right), px(e.margin.bottom))
-        lp.gravity = when (parent.alignItems) {
+        lp.gravity = when (align) {
             Align.START -> if (parentVertical) Gravity.START else Gravity.TOP
             Align.CENTER -> if (parentVertical) Gravity.CENTER_HORIZONTAL else Gravity.CENTER_VERTICAL
             Align.END -> if (parentVertical) Gravity.END else Gravity.BOTTOM
