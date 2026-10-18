@@ -4,6 +4,11 @@
 name: License headers
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.kt"
+      - "**/*.kts"
   pull_request:
   workflow_dispatch:
     inputs:
@@ -22,15 +27,16 @@ jobs:
   headers:
     name: MPL 2.0 notice in every Kotlin file
     runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v4
 
       - name: Check
-        if: github.event_name == 'pull_request' || inputs.mode == 'check'
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'check')
         run: python3 scripts/license_headers.py --check
 
       - name: Add the notice and commit
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'fix'
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'fix')
         run: |
           set -euo pipefail
           python3 scripts/license_headers.py
@@ -41,4 +47,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Add MPL 2.0 license notice to Kotlin files"
+          git pull --rebase
           git push
