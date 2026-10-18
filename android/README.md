@@ -45,14 +45,16 @@ If your project has no `dependencyResolutionManagement`, put the same line in `a
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6")
 }
 ```
 
 ```groovy
 // app/build.gradle
 dependencies {
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6'
 }
 ```
 
@@ -60,9 +62,9 @@ dependencies {
 |---|---|
 | group | `com.github.getnativelayout.nativelayout` |
 | artifact | `nativelayout-android` or `nativelayout-core` |
-| version | a tag of the repository, for example `v0.1.2` |
+| version | a tag of the repository, for example `v0.1.6` |
 
-`nativelayout-android` already includes `nativelayout-core`. Depend on `nativelayout-core` alone only if you want the parser and Expander on a plain JVM. Minimum SDK: 21.
+Add both artifacts, with the same version. Depend on `nativelayout-core` alone only if you want the parser and Expander on a plain JVM. Minimum SDK: 21.
 
 ## Quick start
 
@@ -88,13 +90,29 @@ Put `counter.nl` in `app/src/main/assets/`:
 </nativelayout>
 ```
 
-Then the activity:
+Then the screen function, in `CounterScreen.kt`. It holds the state, reads the taps and returns what to show:
+
+```kotlin
+import nativelayout.NativeView
+import nativelayout.Page
+
+fun NativeView.CounterScreen(): Page {
+    val s = state { mutableMapOf<String, Any?>("n" to 0) }
+
+    if (click("plus")) s["n"] = (s["n"] as Int) + 1
+    if (click("minus")) s["n"] = (s["n"] as Int) - 1
+
+    return view("counter.nl", s)
+}
+```
+
+And the activity, which only prepares and opens the way:
 
 ```kotlin
 import android.app.Activity
 import android.os.Bundle
 import android.widget.FrameLayout
-import co.adilson889.nativelayout.android.NativeView
+import nativelayout.NativeView
 
 class MainActivity : Activity() {
     private lateinit var ui: NativeView
@@ -106,18 +124,11 @@ class MainActivity : Activity() {
         setContentView(area)
 
         ui = NativeView(
-            this,
-            area,
-            { name -> runCatching { assets.open(name).bufferedReader().use { it.readText() } }.getOrNull() }
-        ) {
-            val counter = screen("counter.nl")
-            var n = 0
-
-            while (render(counter, mapOf("n" to n))) {
-                if (click("plus")) n++
-                if (click("minus")) n--
-            }
-        }
+            context = this,
+            area = area,
+            app = { CounterScreen() },
+            loader = { name -> runCatching { assets.open(name).bufferedReader().use { it.readText() } }.getOrNull() }
+        )
     }
 
     override fun onDestroy() {
@@ -127,14 +138,16 @@ class MainActivity : Activity() {
 }
 ```
 
-`NativeView(context, area, loader) { ... }` takes:
+`NativeView(...)` takes (use named arguments):
 
 | Parameter | Meaning |
 |---|---|
 | `context` | the Android context |
 | `area` | the `FrameLayout` where the screen is drawn |
+| `app` | the first screen function, for example `{ CounterScreen() }` |
 | `loader` | returns the text of a file by name, or `null`; used for `.nl` files and linked `.css` |
-| block | the program: a suspend lambda, where `render` suspends until the next tap |
+
+The `render` loop (`NativeView(context, area, loader) { ... }`) is still available as the base layer, see `SPEC.md` section 8.5.
 
 Always call `ui.close()` in `onDestroy`.
 
@@ -142,8 +155,11 @@ Always call `ui.close()` in `onDestroy`.
 
 | Function | Does |
 |---|---|
-| `screen(name)` | loads a `.nl` file through the loader and returns a `Screen` |
-| `render(screen, data)` | shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
+| `screen(name)` | base layer: loads a `.nl` file through the loader and returns a `Screen` |
+| `state(initial)` | the state of the screen: the same object on every call, a new one after `go` |
+| `view(name, data)` | returns the screen to show, with its data |
+| `go(function)` | jumps to another screen function |
+| `render(screen, data)` | base layer: shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
 | `click(target)` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | position, from 0, of the tapped element of the class |
 | `value(id)` | text of a field, `""` if the id does not exist |
@@ -155,7 +171,7 @@ Always call `ui.close()` in `onDestroy`.
 | `delete(key)` | removes a stored key |
 | `close()` | releases the host |
 
-Data passed to `render` is plain: `String`, numbers, `Boolean`, `List` and `Map`.
+Data passed to `view` (and `render`) is plain: `String`, numbers, `Boolean`, `List` and `Map`.
 
 Errors in a `.nl` file are shown on screen in red, with the line of the file.
 
@@ -206,7 +222,7 @@ install:
 To release:
 
 1. Commit to `main`.
-2. Create a GitHub release with a new tag (for example `v0.1.3`).
+2. Create a GitHub release with a new tag (for example `v0.1.7`).
 3. Open `https://jitpack.io/#getnativelayout/nativelayout`, go to Releases and tap Get it on the new tag.
 4. When the log icon turns green, the version is available.
 
