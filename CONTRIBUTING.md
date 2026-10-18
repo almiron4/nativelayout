@@ -132,9 +132,9 @@ Open an issue and fill in every item below. Reports missing the first four items
 1. **What you expected** to see or happen.
 2. **What happened instead**, with the exact error text if the screen showed a red error message.
 3. **The smallest `.nl` file** that shows the problem, in a code block. Remove everything that is not needed. Include the linked `.css` if the style is involved.
-4. **The data** you passed to `render`, as a Kotlin `mapOf(...)` or as JSON-like text.
+4. **The data** you passed to `view` (or `render`), as a Kotlin `mapOf(...)` or as JSON-like text.
 5. **The taps or steps** that lead to the problem (for example: tap Add, then tap the second card).
-6. **Version**: the tag you depend on (for example `v0.1.2`), or the commit if you build from source.
+6. **Version**: the tag you depend on (for example `v0.1.6`), or the commit if you build from source.
 7. **Device**: model, Android version, and font scale if you changed it.
 8. **A screenshot**, when the problem is visual.
 
@@ -258,7 +258,7 @@ Then add the program side:
 
 | Verbs to provide | Spec section |
 |---|---|
-| `screen`, `render`, `click`, `clickIndex`, `value`, `checked`, `setValue`, `save`, `load`, `exists`, `delete`, `close` | 8 |
+| `state`, `view`, `go`, `screen`, `render`, `click`, `clickIndex`, `value`, `checked`, `setValue`, `save`, `load`, `exists`, `delete`, `close` | 8 |
 
 <p align="justify">
 Names follow the idiom of the language (the spec shows <code>click_index</code> and <code>set_value</code> for Python). The behavior does not change: <code>render</code> shows the screen, waits for a tap on an element with an <code>id</code> or a class, and returns <code>true</code>; it returns <code>false</code> when the window closes.
@@ -342,7 +342,7 @@ If a job fails:
 
 1. Make sure `main` is green.
 2. Raise the version in `android/core/build.gradle.kts` and `android/android/build.gradle.kts` when the library changes.
-3. Create a GitHub release with a new tag, for example `v0.1.3`, targeting `main`. The tag must point to a commit that already contains `jitpack.yml`.
+3. Create a GitHub release with a new tag, for example `v0.1.7`, targeting `main`. The tag must point to a commit that already contains `jitpack.yml`.
 4. Open `https://jitpack.io/#getnativelayout/nativelayout`, go to Releases and tap Get it on the new tag.
 5. When the log icon is green, the version is available as `com.github.getnativelayout.nativelayout:nativelayout-android:<tag>`.
 
