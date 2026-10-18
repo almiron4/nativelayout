@@ -150,10 +150,13 @@ A screen is one <code>.nl</code> file: zero or more linked stylesheets, an optio
 
 ### Style
 
-- Selectors: `:root`, `body`, tag, `.class`, `#id`, and comma lists. Variables with `var(--name)`.
-- Properties: `color`, `background`, `font-size`, `font-weight`, `padding`, `margin`, `border-radius`, `border`, `display`, `flex-direction`, `flex`, `justify-content`, `align-items`, `gap`, `width`, `height`.
-- Units: `rem`, `px` (dp) and `0`. Percentages only in `width` and `height`.
-- Not supported in v1: descendant and child selectors, pseudo-classes, attribute selectors, `@media`, `<script>`.
+- Selectors: `:root`, `body`, tag, `.class`, `#id`, comma lists, and the states `:pressed`, `:disabled` and `:focus`. Variables with `var(--name)`. `@media (prefers-color-scheme: dark)` for the dark theme.
+- Layout: `display`, `flex-direction`, `flex`, `flex-wrap`, `justify-content` (including `space-between`, `space-around`, `space-evenly`), `align-items`, `align-self`, `gap`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `overflow`, `opacity`.
+- Box: `padding` and `margin` (and each side), `border` (and `border-width`, `border-color`, `border-style`), `border-radius`, `box-shadow`.
+- Background: `color`, `background` with a color or a `linear-gradient`.
+- Text: `font-size`, `font-weight`, `font-style`, `font-family`, `text-align`, `text-decoration`, `text-transform`, `line-height`, `letter-spacing`.
+- Units: `rem`, `px` (dp) and `0`. Percentages in `width`, `height`, `opacity` and `line-height`.
+- Not supported: descendant and child selectors, `:hover`, attribute selectors, other `@media` conditions, `<script>`.
 
 <p align="justify">
 Values (<code>{name}</code>), control lines (<code>if</code>, <code>elif</code>, <code>else</code>, <code>for</code>, <code>end</code>), the cascade rules, error messages and complete examples are in <a href="SPEC.md"><code>SPEC.md</code></a>.
