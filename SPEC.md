@@ -2,6 +2,8 @@
 
 Status: draft v0.2. It replaces the draft where the markup lived inside Kotlin code.
 
+License: this specification is licensed under [CC BY-SA 4.0](LICENSE-SPEC). Copyright (c) 2026 Adilson C. Rafael. The code examples in this document are also available under the [MPL 2.0](LICENSE).
+
 ---
 
 ## 1. Idea
