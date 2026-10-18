@@ -70,7 +70,8 @@ Without this step the build fails with `Couldn't find com.github.getnativelayout
 
 ```kotlin
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6")
 }
 ```
 
@@ -78,7 +79,8 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6'
 }
 ```
 
@@ -87,10 +89,10 @@ The coordinates are `group:artifact:version`:
 | Part | Value |
 |---|---|
 | group | `com.github.getnativelayout.nativelayout` |
-| artifact | `nativelayout-android` |
-| version | a tag of the repository, for example `v0.1.2` |
+| artifact | `nativelayout-android` and `nativelayout-core` |
+| version | a tag of the repository, for example `v0.1.6` |
 
-`nativelayout-android` already brings `nativelayout-core`. Sync the project after editing.
+Add both artifacts, with the same version. Sync the project after editing.
 
 ## 3. Copy the files
 
