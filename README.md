@@ -85,12 +85,13 @@ Then add the dependency:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.2")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6")
 }
 ```
 
 <p align="justify">
-<code>nativelayout-android</code> already includes <code>nativelayout-core</code>. To use only the parser and Expander (pure JVM), depend on <code>nativelayout-core</code> instead. Minimum SDK: 21.
+<code>nativelayout-android</code> and <code>nativelayout-core</code> are both needed, with the same version. To use only the parser and Expander (pure JVM), depend on <code>nativelayout-core</code> alone. Minimum SDK: 21.
 </p>
 
 <p align="justify">
@@ -100,13 +101,16 @@ Quick start and examples: <a href="android/README.md"><code>android/README.md</c
 ## API
 
 <p align="justify">
-The same verbs exist in every language. Data passed to <code>render</code> is plain: text, number, bool, list and map.
+An app is a set of screen functions. Each one holds its state, reads the taps and returns <code>view(...)</code> or <code>go { ... }</code>; the entry point only starts the first one (see <a href="SPEC.md"><code>SPEC.md</code></a>, section 8). The same verbs exist in every language. Data passed to <code>view</code> is plain: text, number, bool, list and map.
 </p>
 
 | Verb | Does |
 |---|---|
-| `screen(name)` | loads a `.nl` file and returns a screen |
-| `render(screen, data)` | shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
+| `screen(name)` | base layer: loads a `.nl` file and returns a screen |
+| `state(initial)` | the state of the screen: the same object on every call, a new one after `go` |
+| `view(name, data)` | returns the screen to show, with its data |
+| `go(function)` | jumps to another screen function |
+| `render(screen, data)` | base layer: shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
 | `click(target)` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | position, from 0, of the tapped element of the class |
 | `value(id)` | text of a field, `""` if the id does not exist |
