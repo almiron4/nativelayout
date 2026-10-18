@@ -18,7 +18,7 @@ Thank you for wanting to help. This guide says exactly what to do, in order, for
 10. [Add or change an example](#10-add-or-change-an-example)
 11. [Continuous integration](#11-continuous-integration)
 12. [Releases (maintainers)](#12-releases-maintainers)
-13. [License](#13-license)
+13. [License and ownership](#13-license-and-ownership)
 
 ---
 
@@ -46,6 +46,10 @@ Not sure where something belongs? Ask on <a href="https://discord.gg/638USuPnpk"
 The <code>.nl</code> file is the same for every language, and the specification says: <em>simple, nothing ambiguous</em>. A change is accepted only if it can be implemented with the same meaning in every target. If a feature works on Android but cannot be drawn on another platform, it does not go into the spec as a requirement: it becomes a warning on the targets that cannot draw it, never an error (see <a href="SPEC.md">SPEC.md</a>, section 11).
 </p>
 
+<p align="justify">
+The syntax of the <code>.nl</code> file, the verbs of the API and the content of <code>SPEC.md</code> are decided by the maintainer, so that the project keeps one clear idea. Proposals are welcome and are read carefully, but an idea being interesting is not enough: it has to fit the rule above. A proposal that is declined is declined for that reason, and the reason is written in the issue.
+</p>
+
 Consequences you should expect in review:
 
 - No new syntax in the `.nl` file when the program side can do the job (state and logic live in the language, not in the file).
@@ -60,7 +64,8 @@ Consequences you should expect in review:
 README.md          overview, install, API
 SPEC.md            the file format shared by every language (the source of truth)
 CONTRIBUTING.md    this file
-LICENSE            MIT
+LICENSE            MPL 2.0 (the code)
+LICENSE-SPEC       CC BY-SA 4.0 (SPEC.md and the documentation)
 jitpack.yml        tells JitPack how to build the Android library
 img/               images used by the documentation
 .github/workflows/ continuous integration
@@ -181,7 +186,7 @@ Changes to `SPEC.md` follow these rules:
 ### Checklist (all must be true before you ask for review)
 
 - [ ] The change does one thing.
-- [ ] The CI workflow passes, including the job `Test and build example (tasks)`.
+- [ ] The CI workflow passes, including the job `Build example (testlayout) against this commit`.
 - [ ] If behavior changed, `SPEC.md` is updated in the same pull request.
 - [ ] If an error message changed, the table in `SPEC.md` section 10 matches.
 - [ ] If the API changed, the API tables in `README.md` and `android/README.md` match.
@@ -278,7 +283,7 @@ Names follow the idiom of the language (the spec shows <code>click_index</code> 
 ### Step 5: prove it
 
 1. Run `android/examples/tasks/tasks.nl` and `tasks.css` **unchanged** on your implementation.
-2. Write the same tests as the Android CI job: expand `tasks.nl` with the five data states (full list, empty list, each of the three filters, everything done), build the tree, and check that the expected `id`s exist (`title`, `add`, `show-all`, `show-pending`, `show-done`, and `clear` only when something is done).
+2. Write tests for the same five data states: expand `tasks.nl` with them (full list, empty list, each of the three filters, everything done), build the tree, and check that the expected `id`s exist (`title`, `add`, `show-all`, `show-pending`, `show-done`, and `clear` only when something is done).
 3. Make a bad `.nl` for each row of the error table and check the message.
 
 ### Step 6: wire it into the repository
@@ -315,7 +320,7 @@ Rules:
 
 - The example must run in an empty project after following only its README.
 - Keep the files minimal. Do not include Gradle files, manifests or resources that every project already has.
-- If you change `tasks`, update the CI test that expands it (`TasksScreenTest` in `.github/workflows/build.yml`), because it checks the ids and the data it uses.
+- If you change an example, make sure it still builds in CI (job `Build example (testlayout) against this commit`).
 - A new example should cover something `tasks` does not. List what it covers in its README.
 
 ---
@@ -327,13 +332,13 @@ The workflow `.github/workflows/build.yml` runs on every push and pull request.
 | Job | What it does |
 |---|---|
 | `Build editor APK` | builds `android/app` and uploads the APK |
-| `Test and build example (tasks)` | publishes the library from your commit to Maven local, creates a temporary project from the files in `android/examples/tasks/`, runs the screen tests, builds the APK and uploads it |
+| `Build example (testlayout) against this commit` | publishes the library from your commit to Maven local, points the project in `android/examples/testlayout/` at it, builds the APK and uploads it |
 
 If a job fails:
 
 1. Open the run in the Actions tab and open the failed step.
 2. Read the first error, not the last line.
-3. If the example test failed, download the artifact `tasks-example-test-report` for the full report.
+3. If the example build failed, open the failed Gradle step for the full message.
 4. Fix, push to the same branch, wait for the new run.
 
 ---
@@ -350,8 +355,18 @@ A tag is never moved or reused. A fix is a new tag.
 
 ---
 
-## 13. License
+## 13. License and ownership
 
-<p align="justify">
-By contributing, you agree that your contribution is licensed under the <a href="LICENSE">MIT License</a>, the same as the rest of the project.
-</p>
+**Licenses.** The code and the examples are under the <a href="LICENSE">Mozilla Public License 2.0</a>. `SPEC.md` and the written documentation are under <a href="LICENSE-SPEC">CC BY-SA 4.0</a>.
+
+**Your contribution.** By opening a pull request you confirm that:
+
+- you wrote it, or you have the right to submit it;
+- you agree that it is distributed under the license of the file you changed: MPL 2.0 for code and examples, CC BY-SA 4.0 for the specification and the documentation;
+- you keep the copyright of what you wrote, and your name stays in the history of the repository.
+
+**What the MPL 2.0 means for a modified copy.** Files you change must stay under the MPL 2.0 and their source must be published when you distribute them. Your own files, and apps that only use the library, can have any license.
+
+**The name and the logo.** *nativelayout*, *getnativelayout* and the logo are not licensed to anyone. A fork or a modified version must use another name.
+
+This is a summary to help you decide, not legal advice. The license files are the text that applies.
