@@ -10,6 +10,7 @@
 package nativelayout
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Handler
@@ -52,6 +53,12 @@ class NativeView(
         loader: (String) -> String?
     ) : this(context, area, loader, { runApp(app) })
 
+    // @media (prefers-color-scheme: dark) follows the system theme, read on every render.
+    private val isDark: () -> Boolean = {
+        (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+    }
+
     private val host = AndroidLayoutHost(context, { area })
     private val session = LayoutSession(host)
 
@@ -90,7 +97,7 @@ class NativeView(
     suspend fun render(screen: Screen, data: Map<String, Any?> = emptyMap()): Boolean {
         if (closed) return false
         val prepared = inBackground {
-            val expanded = Expander.expand(screen.source, data) { name -> loader(name) }
+            val expanded = Expander.expand(screen.source, data, { name -> loader(name) }, isDark())
             session.prepare(FilledMarkup(expanded.html, 1))
         }
         return session.commit(prepared)
