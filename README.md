@@ -7,7 +7,7 @@
 <p><strong>Create native interfaces from HTML, in any language.</strong></p>
 
 <a href="https://jitpack.io/#getnativelayout/nativelayout"><img src="https://jitpack.io/v/getnativelayout/nativelayout.svg" alt="JitPack"></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MPL%202.0-blue.svg" alt="License: MPL 2.0"></a>
 <br>
 <a href="https://discord.gg/638USuPnpk"><img src="https://img.shields.io/badge/-Join%20our%20Community%20on%20Discord-5865F2?logo=discord&logoColor=white&style=for-the-badge" alt="Join our Community on Discord"></a>
 
@@ -20,7 +20,7 @@ A screen is written once, in a plain text file that looks like HTML. The same fi
 </p>
 
 <p align="justify">
-The file describes the screen. The logic (state, taps) stays in your language, in a plain loop.
+The file describes the screen. The logic (state, taps) stays in your language, in a screen function.
 </p>
 
 ## Community
@@ -181,9 +181,27 @@ SPEC.md      the file format, shared by every language
 ## Contributing
 
 <p align="justify">
-Issues and pull requests are welcome. A new language implementation needs an Expander, an Engine and a native host that follow <code>SPEC.md</code>; the <code>.nl</code> files must work unchanged. Put it in its own folder, with its own README and examples.
+Issues and pull requests are welcome. A new language implementation needs an Expander, an Engine and a native host that follow <code>SPEC.md</code>; the <code>.nl</code> files must work unchanged. Put it in its own folder, with its own README and examples. By contributing you agree to the licenses below (see <a href="CONTRIBUTING.md#13-license-and-ownership">CONTRIBUTING.md, section 13</a>).
 </p>
 
 ## License
 
-[MIT](LICENSE)
+<p align="justify">
+Copyright (c) 2026 Adilson C. Rafael.
+</p>
+
+<p align="justify">
+<strong>The code</strong> is licensed under the <a href="LICENSE">Mozilla Public License 2.0</a> (MPL 2.0). In practice:
+</p>
+
+- You can use the library in any app, open or closed, free or paid.
+- If you modify the files of the library itself and distribute them, you must publish those modifications under the same license.
+- Your credit and copyright notices must be kept.
+
+<p align="justify">
+<strong>The specification</strong> (<a href="SPEC.md"><code>SPEC.md</code></a>) and the written documentation are licensed under <a href="LICENSE-SPEC">CC BY-SA 4.0</a>: you may copy and adapt them if you give credit and share your adaptation under the same license.
+</p>
+
+<p align="justify">
+<strong>The name and the logo.</strong> The names <em>nativelayout</em> and <em>getnativelayout</em>, and the logo, are not covered by these licenses. Do not use them to name a modified version or to suggest that it is endorsed by this project.
+</p>
