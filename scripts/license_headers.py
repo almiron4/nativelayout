@@ -11,9 +11,10 @@ Rules:
 - A file that already has a header comment with "Author:" keeps it; the notice is added inside
   the same comment, after a blank line.
 - A file without a header gets a new comment with only the notice (no author is invented).
-- A file that already mentions the Mozilla Public License near the top is left alone.
+- A file that already mentions the Mozilla Public License near the top is left alone, and a notice repeated in the header is reduced to one copy.
 """
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -36,7 +37,40 @@ def tracked_files():
 
 
 def has_notice(text):
-    return "Mozilla Public License" in "\n".join(text.splitlines()[:20])
+    # The notice is wrapped over several comment lines, so join them (without the " * ") before looking.
+    head = " ".join(line.strip().lstrip("*/ ").strip() for line in text.splitlines()[:20])
+    return "Mozilla Public License" in head
+
+
+# One copy of the notice, with the blank comment line that may come before it.
+NOTICE_COPY = re.compile(
+    r"(?:\n \*)?\n \* " + r"\n \* ".join(re.escape(l) for l in NOTICE)
+)
+
+
+# A comment that holds only the notice (what an earlier version of this script added on each run).
+NOTICE_BLOCK = "/*\n * " + "\n * ".join(NOTICE) + "\n */\n\n"
+
+
+def remove_repeated(text):
+    """Keeps one copy of the notice in the header and drops the others."""
+    # a notice-only comment followed by another comment that already has the notice
+    while text.startswith(NOTICE_BLOCK):
+        rest = text[len(NOTICE_BLOCK):]
+        close = rest.find("*/")
+        if not (rest.startswith("/*") and close != -1 and NOTICE[0] in rest[:close]):
+            break
+        text = rest
+    end = text.find("*/")
+    if end == -1:
+        return text
+    head, rest = text[:end], text[end:]
+    found = list(NOTICE_COPY.finditer(head))
+    if len(found) < 2:
+        return text
+    for m in reversed(found[1:]):
+        head = head[:m.start()] + head[m.end():]
+    return head + rest
 
 
 def add_notice(text):
@@ -59,23 +93,32 @@ def add_notice(text):
 def main():
     check = "--check" in sys.argv[1:]
     missing = []
+    repeated = []
     for root, p in tracked_files():
         text = p.read_text(encoding="utf-8")
-        if has_notice(text):
-            continue
-        missing.append(p.relative_to(root))
-        if not check:
-            p.write_text(add_notice(text), encoding="utf-8")
+        fixed = remove_repeated(text)
+        if fixed != text:
+            repeated.append(p.relative_to(root))
+        if not has_notice(fixed):
+            missing.append(p.relative_to(root))
+            fixed = add_notice(fixed)
+        if not check and fixed != text:
+            p.write_text(fixed, encoding="utf-8")
     if check:
-        if missing:
-            print("These files have no MPL 2.0 notice:")
-            for m in missing:
-                print("  " + str(m))
+        if missing or repeated:
+            if missing:
+                print("These files have no MPL 2.0 notice:")
+                for m in missing:
+                    print("  " + str(m))
+            if repeated:
+                print("These files repeat the MPL 2.0 notice:")
+                for m in repeated:
+                    print("  " + str(m))
             print("Run the workflow 'License headers' with mode 'fix', or: python3 scripts/license_headers.py")
             sys.exit(1)
-        print("All files have the notice.")
+        print("All files have the notice, once.")
     else:
-        print(f"Notice added to {len(missing)} file(s).")
+        print(f"Notice added to {len(missing)} file(s); repeated copies removed from {len(repeated)} file(s).")
 
 
 if __name__ == "__main__":
