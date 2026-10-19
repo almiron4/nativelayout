@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout
@@ -100,9 +96,12 @@ class NativeView(
      */
     suspend fun render(screen: Screen, data: Map<String, Any?> = emptyMap()): Boolean {
         if (closed) return false
-        val prepared = inBackground {
+        val (prepared, expandWarnings) = inBackground {
             val expanded = Expander.expand(screen.source, data, { name -> loader(name) }, isDark())
-            session.prepare(FilledMarkup(expanded.html, 1))
+            Pair(session.prepare(FilledMarkup(expanded.html, 1)), expanded.warnings)
+        }
+        for (w in expandWarnings) {
+            if (session.warnings.none { it.message == w.message && it.line == w.line }) session.warnings.add(w)
         }
         return session.commit(prepared)
     }
