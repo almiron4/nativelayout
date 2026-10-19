@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout.core
@@ -708,12 +704,6 @@ private class LayoutBuilder(
                     for (c in children) {
                         if (c is NativeBox && c.overlay) {
                             throw err("<dialog> cannot be inside a 'virtual' container", c.line, "<dialog")
-                        }
-                        if (c.keyHint == null) {
-                            throw err(
-                                "every child of a 'virtual' container needs a key", c.line, "virtual",
-                                "add key=\"{item.id}\" to each item inside the for"
-                            )
                         }
                     }
                 }
