@@ -83,7 +83,7 @@ Each language lives in its own folder at the repository root (<code>android/</co
 </p>
 
 <p align="justify">
-The editor app does not depend on the <code>core</code> and <code>android</code> modules: <code>android/app/src/main/kotlin/nativelayout/</code> holds copies of their sources. When you change a file in <code>android/core</code> or <code>android/android</code>, copy it to the same place in <code>android/app</code> in the same commit, or the editor preview will not show your change.
+The editor app uses the <code>core</code> and <code>android</code> modules of the same commit (<code>implementation(project(...))</code> in <code>android/app/build.gradle.kts</code>), so a change to the engine shows in the editor without copying any file. To try a change on a phone, push your branch and install the editor APK that the workflow builds (section 11).
 </p>
 
 ---
@@ -152,7 +152,7 @@ Open an issue and fill in every item below. Reports missing the first four items
 3. **The smallest `.nl` file** that shows the problem, in a code block. Remove everything that is not needed. Include the linked `.css` if the style is involved.
 4. **The data** you passed to `view` (or `render`), as a Kotlin `mapOf(...)` or as JSON-like text.
 5. **The taps or steps** that lead to the problem (for example: tap Add, then tap the second card).
-6. **Version**: the tag you depend on (for example `v0.1.6`), or the commit if you build from source.
+6. **Version**: the tag you depend on (for example `v0.1.7`), or the commit if you build from source.
 7. **Device**: model, Android version, and font scale if you changed it.
 8. **A screenshot**, when the problem is visual.
 
@@ -243,7 +243,6 @@ Use the comment syntax of the language (`#` for YAML and Python).
 3. Apply it in `AndroidLayoutHost.kt` (`applyStyle` and the functions it calls).
 4. Document it in `SPEC.md` section 4.3 and in the style list of `README.md`.
 5. Add a case to `CssFeaturesTest` for the valid value, an invalid value and, if it is inherited, the inheritance.
-6. Copy the changed files to `android/app/src/main/kotlin/nativelayout/`.
 
 A selector state (`:pressed`, `:disabled`, `:focus`) or an `@media` condition is read in `Expander.kt`, not in the engine: the expander writes the result into the `style` attributes (`style-pressed`, `style-disabled`, `style-focus`).
 
@@ -356,7 +355,7 @@ The workflow `.github/workflows/build.yml` runs on every push and pull request.
 
 | Job | What it does |
 |---|---|
-| `Build editor APK` | runs the core tests (`gradle :core:test`), builds `android/app` and uploads the APK |
+| `Build editor APK` | runs the core tests (`gradle :core:test`), builds `android/app` with the engine of this commit and uploads the APK (`nativelayout-debug`) |
 | `Build example (testlayout) against this commit` | publishes the library from your commit to Maven local, points the project in `android/examples/testlayout/` at it, builds the APK and uploads it |
 
 If a job fails:
