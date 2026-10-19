@@ -61,6 +61,13 @@ A `<fieldset>` groups related fields. By default it has a thin gray border, roun
 - With the `disabled` attribute, the group blocks every button, field and checkbox inside it, as in HTML.
 - The `<legend>` is shown as the first line inside the border, and not over the border line as in a browser.
 - A `<legend>` outside a `<fieldset>` is an error.
+- To put the legend on the border line, as a browser does, pull it up with a negative margin and give it the background of the screen. `align-self: flex-start` makes it as wide as its text, so the line stays visible on both sides:
+
+```css
+fieldset { padding-top: 1.25rem; margin-top: 0.75rem; }
+legend   { align-self: flex-start; margin-top: -2rem; margin-left: 0.5rem; padding: 0.25rem;
+           background: var(--bg); }
+```
 
 ---
 
