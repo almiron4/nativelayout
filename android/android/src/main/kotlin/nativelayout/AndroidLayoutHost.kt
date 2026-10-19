@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout
@@ -20,7 +16,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -73,6 +71,10 @@ class AndroidLayoutHost(
     private val entries = HashMap<String, ViewEntry>()
     private var rootKey: String? = null
     private var area: FrameLayout? = null
+
+    /** Views of the <dialog> layers: they sit over the screen, in the area, and not inside the scroll. */
+    private val pendingLayers = ArrayList<View>()
+    private var layersReady = false
 
     private val queue = ArrayDeque<LayoutEvent>()
     private var pending: Continuation<LayoutEvent?>? = null
@@ -162,6 +164,8 @@ class AndroidLayoutHost(
     private fun reset() {
         entries.clear()
         rootKey = null
+        pendingLayers.clear()
+        layersReady = false
         area?.removeAllViews()
     }
 
@@ -178,13 +182,32 @@ class AndroidLayoutHost(
         target.addView(scroll, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
         ))
+        for (layer in pendingLayers) target.addView(layer, layerParams())
+        pendingLayers.clear()
+        layersReady = true
         rootKey = node.key
+    }
+
+    private fun isLayer(n: Native): Boolean = n is NativeBox && n.overlay
+
+    private fun layerParams() = FrameLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+    )
+
+    /** A <dialog> goes over everything in the area. While the screen is being built it waits in a list. */
+    private fun attachLayer(view: View) {
+        val target = area
+        if (layersReady && target != null) target.addView(view, layerParams()) else pendingLayers.add(view)
     }
 
     private fun create(a: Change.Create) {
         val parentEntry = entries[a.parentKey] ?: return
         val container = parentEntry.container ?: return
         val created = createView(a.node, parentEntry.style)
+        if (isLayer(a.node)) {
+            attachLayer(created.view)
+            return
+        }
         container.addView(created.view, minOf(a.position, container.childCount))
         applyPercents(created.view, created.style, container)
     }
@@ -208,11 +231,25 @@ class AndroidLayoutHost(
         val parent = old.view.parent as? ViewGroup ?: return
         val index = parent.indexOfChild(old.view)
         val parentEntry = entryOfParent(parent)
+        val oldWasLayer = isLayer(old.node)
         discard(old.view)
         parent.removeView(old.view)
-        val created = createView(a.node, parentEntry?.style)
-        parent.addView(created.view, minOf(index, parent.childCount))
-        applyPercents(created.view, created.style, parent)
+        when {
+            isLayer(a.node) -> attachLayer(createView(a.node, null).view)
+            oldWasLayer -> {
+                // a layer that stops being one goes back to the end of the root
+                val rootEntry = rootKey?.let { entries[it] } ?: return
+                val container = rootEntry.container ?: return
+                val created = createView(a.node, rootEntry.style)
+                container.addView(created.view)
+                applyPercents(created.view, created.style, container)
+            }
+            else -> {
+                val created = createView(a.node, parentEntry?.style)
+                parent.addView(created.view, minOf(index, parent.childCount))
+                applyPercents(created.view, created.style, parent)
+            }
+        }
     }
 
     private fun updateText(a: Change.UpdateText) {
@@ -347,8 +384,12 @@ class AndroidLayoutHost(
         if (container != null) {
             for (child in node.nativeChildren()) {
                 val childEntry = createView(child, node.style)
-                container.addView(childEntry.view)
-                applyPercents(childEntry.view, childEntry.style, container)
+                if (isLayer(child)) {
+                    attachLayer(childEntry.view)
+                } else {
+                    container.addView(childEntry.view)
+                    applyPercents(childEntry.view, childEntry.style, container)
+                }
             }
         }
         return entry
@@ -364,7 +405,8 @@ class AndroidLayoutHost(
             v.setOnClickListener { publish(key) }
         } else {
             v.setOnClickListener(null)
-            v.isClickable = v is Button || v is CheckBox
+            // a layer takes the taps, so that nothing under it is touched
+            v.isClickable = v is Button || v is CheckBox || isLayer(node)
         }
     }
 
@@ -555,9 +597,16 @@ class AndroidLayoutHost(
         // overflow: hidden clips to the rounded corners; box-shadow becomes elevation
         if (st.overflowHidden) {
             val radius = pxF(st.borderRadius)
+            val radii = st.corners?.let { cornerRadii(it) }
             v.outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {
-                    outline.setRoundRect(0, 0, view.width, view.height, radius)
+                    if (radii == null) {
+                        outline.setRoundRect(0, 0, view.width, view.height, radius)
+                    } else {
+                        val path = Path()
+                        path.addRoundRect(RectF(0f, 0f, view.width.toFloat(), view.height.toFloat()), radii, Path.Direction.CW)
+                        outline.setConvexPath(path)
+                    }
                 }
             }
             v.clipToOutline = true
@@ -592,9 +641,19 @@ class AndroidLayoutHost(
                 setColor(background ?: (if (e.backgroundColor != 0) e.backgroundColor else Color.TRANSPARENT))
             }
         }
-        shape.cornerRadius = pxF(e.borderRadius)
+        val corners = e.corners
+        if (corners != null) shape.setCornerRadii(cornerRadii(corners)) else shape.cornerRadius = pxF(e.borderRadius)
         if (e.borderWidth.value > 0f) shape.setStroke(maxOf(1, px(e.borderWidth)), border ?: e.borderColor)
         return shape
+    }
+
+    /** The eight values Android wants: x and y of top-left, top-right, bottom-right and bottom-left. */
+    private fun cornerRadii(c: Corners): FloatArray {
+        val tl = pxF(c.topLeft)
+        val tr = pxF(c.topRight)
+        val br = pxF(c.bottomRight)
+        val bl = pxF(c.bottomLeft)
+        return floatArrayOf(tl, tl, tr, tr, br, br, bl, bl)
     }
 
     private fun changesLook(s: StateStyle?): Boolean =
