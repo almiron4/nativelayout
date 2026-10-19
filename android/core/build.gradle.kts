@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 plugins {
@@ -21,6 +17,7 @@ version = "0.1.0"
 
 dependencies {
     implementation(kotlin("stdlib"))
+    testImplementation("junit:junit:4.13.2")
 }
 
 kotlin { jvmToolchain(21) }
