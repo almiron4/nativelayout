@@ -193,7 +193,8 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 
 ```
 android/     Kotlin implementation (core, android, app), with its own README and examples
-SPEC.md      the file format, shared by every language
+SPEC.md      the specification: index and overview, shared by every language
+docs/spec/   the specification, split by subject (the section numbers do not change)
 ```
 
 ## Contributing
