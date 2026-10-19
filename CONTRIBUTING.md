@@ -62,10 +62,11 @@ Consequences you should expect in review:
 
 ```
 README.md          overview, install, API
-SPEC.md            the file format shared by every language (the source of truth)
+SPEC.md            the specification, index and overview (the source of truth)
+docs/spec/         the specification, split by subject; the section numbers do not change
 CONTRIBUTING.md    this file
 LICENSE            MPL 2.0 (the code)
-LICENSE-SPEC       CC BY-SA 4.0 (SPEC.md and the documentation)
+LICENSE-SPEC       CC BY-SA 4.0 (SPEC.md, docs/spec/ and the documentation)
 jitpack.yml        tells JitPack how to build the Android library
 img/               images used by the documentation
 .github/workflows/ continuous integration
@@ -172,7 +173,7 @@ A problem that only happens in one state of the data usually means the Expander 
    - at least one example `.nl` and the matching program side.
 4. Wait for agreement before writing the code. A proposal that changes the format is decided in the issue, not in the pull request.
 
-Changes to `SPEC.md` follow these rules:
+Changes to `SPEC.md` and `docs/spec/` follow these rules:
 
 - The spec changes in the same pull request as the code that implements it.
 - Bump the version at the top of `SPEC.md` when the format changes: patch for clarifications, minor for additions, major for anything that breaks an existing `.nl` file.
