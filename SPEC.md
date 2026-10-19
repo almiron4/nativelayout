@@ -95,7 +95,7 @@ A variable that is not declared in `:root` is an error.
 | Area | Properties |
 |---|---|
 | Layout | `display` (`flex` or `block`), `flex-direction`, `flex`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `gap`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `overflow`, `opacity` |
-| Box | `padding`, `margin` (and `-top`, `-right`, `-bottom`, `-left` of each), `border` (and `border-width`, `border-color`, `border-style`), `border-radius`, `box-shadow` |
+| Box | `padding`, `margin` (and `-top`, `-right`, `-bottom`, `-left` of each), `border` (and `border-width`, `border-color`, `border-style`), `border-radius` (one to four values) and `border-top-left-radius`, `border-top-right-radius`, `border-bottom-right-radius`, `border-bottom-left-radius`, `box-shadow` |
 | Background | `color`, `background` (and `background-color`, `background-image`) with a color or a `linear-gradient` |
 | Text | `font-size`, `font-weight`, `font-style`, `font-family`, `text-align`, `text-decoration`, `text-transform`, `line-height`, `letter-spacing` |
 
@@ -112,6 +112,7 @@ Details of the properties added after v0.1:
 - `flex-wrap: wrap` works in rows (`flex-direction: row`). Items break to a new line when they do not fit, and `gap` is used between items and between lines. `flex` does not grow items inside a wrapped row. In a column it is ignored.
 - `align-self` (`auto`, `flex-start`, `center`, `flex-end`, `stretch`) overrides `align-items` for one element.
 - `min-width`, `min-height`, `max-width` and `max-height` take a length. `max-width: none` clears a limit.
+- `border-radius` takes one to four lengths in the CSS order: top-left, top-right, bottom-right, bottom-left. With two values the first is for top-left and bottom-right and the second for top-right and bottom-left. With three, the second is for top-right and bottom-left. `border-radius: 16px 16px 0 0` rounds only the top, the shape of a bottom sheet. The slash form (`10px / 20px`) and percentages are not supported and give a warning. The four `border-*-radius` properties change one corner.
 - `overflow: hidden` clips the content to the rounded corners (`border-radius`). `overflow: visible` is the default. `scroll` and `auto` are not supported and give a warning.
 - `opacity` from 0 to 1. A disabled element is drawn at 0.5 unless `:disabled` sets its own `opacity`.
 - `text-align`: `left`, `center`, `right` (and `start`, `end`). `justify` gives a warning and is treated as `left`.
@@ -167,6 +168,8 @@ button:disabled { background: #CCCCCC; opacity: 0.6; }
 | `textarea` | multi-line field |
 | `img` | image |
 | `ul`, `li` | list; each `li` gets a bullet |
+| `fieldset`, `legend` | bordered group with a title (section 5.5) |
+| `dialog` | layer over the screen: dialog or sheet (section 5.4) |
 
 A tag outside this list is an error.
 
@@ -183,7 +186,7 @@ The whole screen scrolls: the root sits in one vertical scroll container. A long
 | `type` | type of an `input` |
 | `value` | initial text of a field |
 | `checked` | initial state of a checkbox |
-| `disabled`, `readonly` | blocks the element |
+| `disabled`, `readonly` | blocks the element; on a `fieldset`, blocks everything inside it (section 5.5) |
 | `src`, `alt` | image: a `data:` URI or a name resolved by the host; no network in v1 |
 | `rows` | lines of a `textarea` |
 | `key` | stable name of an item among its siblings (section 5.3) |
@@ -259,6 +262,58 @@ Limits:
 - Only containers use `virtual`. On other tags it has no effect.
 
 ---
+
+### 5.4 Layers: `<dialog>`
+
+A `<dialog>` is a layer drawn over the whole screen. It is how a dialog, a menu or a bottom sheet is written, with the same tools as the rest of the screen.
+
+```
+<nativelayout>
+    <style>
+        .folha { background: white; padding: 1rem; border-radius: 16px 16px 0 0; gap: 0.5rem; }
+    </style>
+    <body>
+        <h1>Tasks</h1>
+
+        if confirm:
+            <dialog id="camada" style="justify-content: flex-end; align-items: stretch">
+                <div class="folha">
+                    <p>Clear the finished tasks?</p>
+                    <button id="yes">Clear</button>
+                    <button id="no">Cancel</button>
+                </div>
+            </dialog>
+        end
+    </body>
+</nativelayout>
+```
+
+- The `<dialog>` element is the layer itself. Its style is the style of the layer: the default is a dimmed background (`rgba(0,0,0,0.5)`) with the content centered, and you change it as you like. `justify-content` and `align-items` place the content: `center` and `center` make a dialog, `flex-end` and `stretch` make a bottom sheet, `flex-start` and `stretch` a top bar.
+- The content is a normal block. Its size, background, border and corners are written in its own style (for the sheet above, `border-radius: 16px 16px 0 0`).
+- The layer takes every tap, so nothing under it is touched. If the `<dialog>` has an `id` or a class, a tap on the layer outside the content wakes the program like any other tap. That is how a tap outside closes the dialog.
+- Whether the dialog is shown is the program's data, with `if`. The file does not open or close anything.
+- A `<dialog>` goes at the first level of the screen, next to the other blocks. Inside another block it is an error. It cannot be inside a `virtual` container.
+- Several dialogs are drawn in the order they are written, over the other blocks, which keep their order. A dialog is always placed after them in the tree.
+- The back button of the system, animations and dragging the sheet are the job of the host and are not in the file.
+- What the operating system asks the user (permissions, choosing a file or a date, sharing) is not a layer: it is a verb of the program's API, not part of the `.nl`.
+
+### 5.5 Groups: `<fieldset>` and `<legend>`
+
+A `<fieldset>` groups related fields. By default it has a thin gray border, rounded corners and padding. A `<legend>` is its title, bold and first inside the group.
+
+```
+<fieldset>
+    <legend>Delivery</legend>
+    <input id="street" type="text" placeholder="Street">
+    <input id="city" type="text" placeholder="City">
+</fieldset>
+```
+
+- The group is a container like a `div`; the border, padding and corners are a default style you can change.
+- With the `disabled` attribute, the group blocks every button, field and checkbox inside it, as in HTML.
+- The `<legend>` is shown as the first line inside the border, and not over the border line as in a browser.
+- A `<legend>` outside a `<fieldset>` is an error.
+
 
 ## 6. Values and control
 
@@ -542,6 +597,9 @@ Same format as the other messages, with the line of the `.nl` file.
 | `<script>` | `markup: <script> is not allowed` |
 | Repeated id | `markup: duplicate id 'add'` |
 | Repeated key | `markup: duplicate key 'p1'` |
+| `<dialog>` not at the first level | `markup: <dialog> must be a direct child of the root tag (line 9)` |
+| `<dialog>` in a `virtual` container | `markup: <dialog> cannot be inside a 'virtual' container (line 12)` |
+| `<legend>` outside a `<fieldset>` | `markup: <legend> can only be inside <fieldset> (line 5)` |
 | Item without key in a `virtual` container | `markup: every child of a 'virtual' container needs a key (line 12)` |
 | Id or class with a value | `markup: 'id' cannot be generated by value` |
 | `end` without a block | `'end' has no matching 'if' or 'for' (line 20)` |
