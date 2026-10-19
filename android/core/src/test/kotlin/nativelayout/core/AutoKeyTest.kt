@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout.core
@@ -33,7 +29,7 @@ $body
     private val list = screen(
         """
     for p in products:
-        <div class="card"><p>{p.name}</p></div>
+        <div class="card"><p>{p.name}</p><p>x</p></div>
     end
 """
     )
@@ -76,7 +72,7 @@ $body
         val src = screen(
             """
     for p in products:
-        <div key="{p.name}"><p>{p.name}</p></div>
+        <div key="{p.name}"><p>{p.name}</p><p>x</p></div>
     end
 """
         )
@@ -121,7 +117,7 @@ $body
     for p in products:
         <div class="card">
             for t in p.tags:
-                <span>{t.name}</span>
+                <div>{t.name}</div>
             end
         </div>
     end
