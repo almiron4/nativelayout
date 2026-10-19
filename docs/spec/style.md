@@ -53,6 +53,7 @@ Details of the properties added after v0.1:
 - `flex-wrap: wrap` works in rows (`flex-direction: row`). Items break to a new line when they do not fit, and `gap` is used between items and between lines. `flex` does not grow items inside a wrapped row. In a column it is ignored.
 - `align-self` (`auto`, `flex-start`, `center`, `flex-end`, `stretch`) overrides `align-items` for one element.
 - `min-width`, `min-height`, `max-width` and `max-height` take a length. `max-width: none` clears a limit.
+- `margin` accepts negative lengths. A box does not clip its children: what a negative margin pushes outside the box is drawn, unless the box has `overflow: hidden`.
 - `border-radius` takes one to four lengths in the CSS order: top-left, top-right, bottom-right, bottom-left. With two values the first is for top-left and bottom-right and the second for top-right and bottom-left. With three, the second is for top-right and bottom-left. `border-radius: 16px 16px 0 0` rounds only the top, the shape of a bottom sheet. The slash form (`10px / 20px`) and percentages are not supported and give a warning. The four `border-*-radius` properties change one corner.
 - `overflow: hidden` clips the content to the rounded corners (`border-radius`). `overflow: visible` is the default. `scroll` and `auto` are not supported and give a warning.
 - `opacity` from 0 to 1. A disabled element is drawn at 0.5 unless `:disabled` sets its own `opacity`.
