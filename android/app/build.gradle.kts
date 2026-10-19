@@ -39,3 +39,9 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
+
+dependencies {
+    // The editor uses the engine of this same commit, not a copy of its sources.
+    implementation(project(":android"))
+    implementation(project(":core"))
+}
