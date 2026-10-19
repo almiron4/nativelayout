@@ -24,6 +24,18 @@ A screen is written once, in a plain text file that looks like HTML. The same fi
 The file describes the screen. The logic (state, taps) stays in your language, in a screen function.
 </p>
 
+## Article
+
+<p align="justify">
+The motivation, the proposal and the first results on long lists are described in the technical article:
+</p>
+
+> Rafael, A. C. (2026). *Describing Native Android Interfaces with HTML and CSS: A Proposal for Simplification*. Zenodo. [https://doi.org/10.5281/zenodo.23470439](https://doi.org/10.5281/zenodo.23470439)
+
+<p align="justify">
+To cite this project, use the "Cite this repository" button on GitHub (see <a href="CITATION.cff"><code>CITATION.cff</code></a>).
+</p>
+
 ## Community
 
 <p align="justify">
@@ -183,18 +195,6 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 android/     Kotlin implementation (core, android, app), with its own README and examples
 SPEC.md      the file format, shared by every language
 ```
-
-## Article
-
-<p align="justify">
-The motivation, the proposal and the first results on long lists are described in the technical article:
-</p>
-
-> Rafael, A. C. (2026). *Describing Native Android Interfaces with HTML and CSS: A Proposal for Simplification*. Zenodo. [https://doi.org/10.5281/zenodo.23470439](https://doi.org/10.5281/zenodo.23470439)
-
-<p align="justify">
-To cite this project, use the "Cite this repository" button on GitHub (see <a href="CITATION.cff"><code>CITATION.cff</code></a>).
-</p>
 
 ## Contributing
 
