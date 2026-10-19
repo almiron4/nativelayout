@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout.core
@@ -146,6 +142,13 @@ object CssValues {
         val m = REGEX_LENGTH.matchEntire(t) ?: return null
         val n = m.groupValues[1].toFloatOrNull() ?: return null
         return if (m.groupValues[2] == "rem") Length.rem(n) else Length.px(n)
+    }
+
+    /** A number from 0 to 1, or a percentage (opacity). */
+    fun fraction(text: String): Float? {
+        val t = text.trim().lowercase()
+        val v = if (t.endsWith("%")) t.dropLast(1).toFloatOrNull()?.div(100f) else t.toFloatOrNull()
+        return v?.coerceIn(0f, 1f)
     }
 
     fun size(text: String): Size? {
