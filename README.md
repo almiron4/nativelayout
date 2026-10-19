@@ -147,12 +147,14 @@ A screen is one <code>.nl</code> file: zero or more linked stylesheets, an optio
 | `textarea` | multi-line field |
 | `img` | image (`data:` URI or a name resolved by the host) |
 | `ul`, `li` | list with bullets |
+| `fieldset`, `legend` | bordered group with a title; `disabled` blocks everything inside |
+| `dialog` | layer over the screen: dialog or bottom sheet |
 
 ### Style
 
 - Selectors: `:root`, `body`, tag, `.class`, `#id`, comma lists, and the states `:pressed`, `:disabled` and `:focus`. Variables with `var(--name)`. `@media (prefers-color-scheme: dark)` for the dark theme.
 - Layout: `display`, `flex-direction`, `flex`, `flex-wrap`, `justify-content` (including `space-between`, `space-around`, `space-evenly`), `align-items`, `align-self`, `gap`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `overflow`, `opacity`.
-- Box: `padding` and `margin` (and each side), `border` (and `border-width`, `border-color`, `border-style`), `border-radius`, `box-shadow`.
+- Box: `padding` and `margin` (and each side), `border` (and `border-width`, `border-color`, `border-style`), `border-radius` (one to four values, or one corner with `border-top-left-radius` and the others), `box-shadow`.
 - Background: `color`, `background` with a color or a `linear-gradient`.
 - Text: `font-size`, `font-weight`, `font-style`, `font-family`, `text-align`, `text-decoration`, `text-transform`, `line-height`, `letter-spacing`.
 - Units: `rem`, `px` (dp) and `0`. Percentages in `width`, `height`, `opacity` and `line-height`.
