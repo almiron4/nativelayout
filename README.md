@@ -8,6 +8,7 @@
 
 <a href="https://jitpack.io/#getnativelayout/nativelayout"><img src="https://jitpack.io/v/getnativelayout/nativelayout.svg" alt="JitPack"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MPL%202.0-blue.svg" alt="License: MPL 2.0"></a>
+<a href="https://doi.org/10.5281/zenodo.23470439"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23470439.svg" alt="DOI"></a>
 <br>
 <a href="https://discord.gg/638USuPnpk"><img src="https://img.shields.io/badge/-Join%20our%20Community%20on%20Discord-5865F2?logo=discord&logoColor=white&style=for-the-badge" alt="Join our Community on Discord"></a>
 
@@ -182,6 +183,18 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 android/     Kotlin implementation (core, android, app), with its own README and examples
 SPEC.md      the file format, shared by every language
 ```
+
+## Article
+
+<p align="justify">
+The motivation, the proposal and the first results on long lists are described in the technical article:
+</p>
+
+> Rafael, A. C. (2026). *Describing Native Android Interfaces with HTML and CSS: A Proposal for Simplification*. Zenodo. [https://doi.org/10.5281/zenodo.23470439](https://doi.org/10.5281/zenodo.23470439)
+
+<p align="justify">
+To cite this project, use the "Cite this repository" button on GitHub (see <a href="CITATION.cff"><code>CITATION.cff</code></a>).
+</p>
 
 ## Contributing
 
