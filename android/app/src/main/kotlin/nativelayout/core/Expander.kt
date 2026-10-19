@@ -5,15 +5,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout.core
 
-class ExpandedScreen(val html: String, val lineMap: List<Int>)
+class ExpandedScreen(
+    val html: String,
+    val lineMap: List<Int>,
+    /** Things that work but deserve a look, with the line of the `.nl` file (line numbers are the file's own). */
+    val warnings: List<LayoutWarning> = emptyList()
+)
 
 class ExpandError(
     message: String,
@@ -114,6 +115,11 @@ private class ForNode(val line: Int, val variable: String, val listName: String)
 private class Frame(val openLine: Int, var nodes: MutableList<Node>, val ifNode: IfNode?)
 private class Control(val type: String, val argument: String, val variable: String = "")
 
+private val KEY_FIELDS = listOf("key", "id")
+private val VOID_NAMES = setOf("br", "hr", "img", "input", "meta", "link")
+private val HAS_KEY = Regex("""\skey\s*=""")
+private val FIELD_OR_ID = Regex("""<(?:input|textarea)\b|\sid\s*=""")
+
 private object Rx {
     val tagRegex = Regex("""<[^<>]*>""")
     val tagNameRegex = Regex("""^<([A-Za-z][A-Za-z0-9-]*)""")
@@ -175,6 +181,7 @@ private class ScreenExpander(
     private var ruleOrder = 0
     private val out = ArrayList<String>()
     private val outLines = ArrayList<Int>()
+    private val warnings = ArrayList<LayoutWarning>()
 
 
     private fun err(message: String, line: Int, word: String? = null, suggestion: String? = null) =
@@ -284,7 +291,7 @@ private class ScreenExpander(
             Expander.store(cacheKey, prepared)
         }
         emit(prepared.nodes, Scope(null, data))
-        return ExpandedScreen(out.joinToString("\n"), outLines)
+        return ExpandedScreen(out.joinToString("\n"), outLines, warnings.toList())
     }
 
     private fun flattenMedia(text: String, firstLine: Int, file: String?, linkLine: Int): String {
@@ -475,10 +482,78 @@ private class ScreenExpander(
                     val list = lookup(node.listName, node.line, scope)
                     if (list !is List<*>) throw err("'${node.listName}' is not a list", node.line, node.listName)
                     if (scope.has(node.variable)) throw err("the name '${node.variable}' already exists", node.line, node.variable)
-                    for (item in list) emit(node.nodes, Scope(scope, mapOf(node.variable to item)))
+                    var positionWarned = false
+                    for (item in list) {
+                        val first = out.size
+                        emit(node.nodes, Scope(scope, mapOf(node.variable to item)))
+                        val keyed = applyKey(first, keyOfItem(item))
+                        if (!keyed && !positionWarned && holdsFieldsOrIds(first)) {
+                            positionWarned = true
+                            val w = LayoutWarning("the items of this list have no id: using the position", node.line)
+                            if (warnings.none { it.message == w.message && it.line == w.line }) warnings.add(w)
+                        }
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * The automatic key of an item (section 5.7): its field `key`, or else its field `id`.
+     * Only text and whole numbers count. Anything else gives null and the position is used.
+     */
+    private fun keyOfItem(item: Any?): String? {
+        if (item !is Map<*, *>) return null
+        for (field in KEY_FIELDS) {
+            when (val v = item[field]) {
+                is String -> v.trim().takeIf { it.isNotEmpty() }?.let { return it }
+                is Int, is Long, is Short, is Byte -> return v.toString()
+                else -> {}
+            }
+        }
+        return null
+    }
+
+    /**
+     * Writes `key="..."` on the elements at the first level of what one item of a `for` emitted,
+     * unless the author already wrote a key. Returns false when there was no key to give.
+     */
+    private fun applyKey(first: Int, key: String?): Boolean {
+        if (key == null) return false
+        val escaped = escapeHtml(key)
+        var depth = 0
+        for (k in first until out.size) {
+            val line = out[k]
+            var rebuilt: StringBuilder? = null
+            var copied = 0
+            for (m in Rx.tagRegex.findAll(line)) {
+                val tag = m.value
+                if (tag.startsWith("<!")) continue
+                if (tag.startsWith("</")) {
+                    depth--
+                    continue
+                }
+                val name = Rx.tagNameRegex.find(tag)?.groupValues?.get(1)?.lowercase() ?: continue
+                if (depth == 0 && !HAS_KEY.containsMatchIn(tag)) {
+                    val b = rebuilt ?: StringBuilder().also { rebuilt = it }
+                    b.append(line, copied, m.range.first)
+                    b.append(tag, 0, name.length + 1).append(" key=\"").append(escaped).append('"').append(tag, name.length + 1, tag.length)
+                    copied = m.range.last + 1
+                }
+                if (name !in VOID_NAMES && !tag.endsWith("/>")) depth++
+            }
+            rebuilt?.let {
+                it.append(line, copied, line.length)
+                out[k] = it.toString()
+            }
+        }
+        return true
+    }
+
+    /** True when what an item emitted has an `id` or a field, that is, something that follows the item. */
+    private fun holdsFieldsOrIds(first: Int): Boolean {
+        for (k in first until out.size) if (FIELD_OR_ID.containsMatchIn(out[k])) return true
+        return false
     }
 
     private fun lookup(name: String, line: Int, scope: Scope): Any? =
