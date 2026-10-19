@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout.core
@@ -30,7 +26,18 @@ object Expander {
         source: String,
         data: Map<String, Any?>,
         resolve: (String) -> String? = { null }
-    ): ExpandedScreen = ScreenExpander(source, data, resolve).expand()
+    ): ExpandedScreen = expand(source, data, resolve, false)
+
+    /**
+     * [dark] selects the rules inside `@media (prefers-color-scheme: dark)` (and drops the
+     * ones inside `... light`). The host reads it from the system theme.
+     */
+    fun expand(
+        source: String,
+        data: Map<String, Any?>,
+        resolve: (String) -> String?,
+        dark: Boolean
+    ): ExpandedScreen = ScreenExpander(source, data, resolve, dark).expand()
 
     internal fun cached(key: String): Any? = synchronized(cache) { cache[key] }
 
@@ -48,6 +55,13 @@ private const val KIND_TAG = 1
 private const val KIND_CLASS = 2
 private const val KIND_ID = 3
 
+private const val STATE_NONE = 0
+private const val STATE_PRESSED = 1
+private const val STATE_DISABLED = 2
+private const val STATE_FOCUS = 3
+
+private val STATE_ATTRIBUTES = arrayOf("style-pressed", "style-disabled", "style-focus")
+
 private class Rule(
     val kind: Int,
     val name: String,
@@ -55,7 +69,8 @@ private class Rule(
     val order: Int,
     val line: Int,
     val file: String?,
-    val linkLine: Int
+    val linkLine: Int,
+    val state: Int = STATE_NONE
 ) {
     var resolved: List<Pair<String, String>> = emptyList()
 }
@@ -135,7 +150,8 @@ private class DynTag(
     val lower: String,
     val selfClose: Boolean,
     val ruleStyle: String,
-    val attrs: Array<AttrPlan>
+    val attrs: Array<AttrPlan>,
+    val stateStyles: Array<String> = arrayOf("", "", "")
 ) : Part()
 
 private class Prepared(val rules: List<Rule>, val nodes: List<Node>)
@@ -145,7 +161,8 @@ private val EMPTY_SCOPE = Scope(null, emptyMap())
 private class ScreenExpander(
     private val source: String,
     private val data: Map<String, Any?>,
-    private val resolve: (String) -> String?
+    private val resolve: (String) -> String?,
+    private val dark: Boolean
 ) {
 
     private val lines = source.split("\n")
@@ -246,7 +263,7 @@ private class ScreenExpander(
             sheets.add(Triple(href, linkLine, css))
         }
 
-        val key = StringBuilder(source.length + 64).append(source)
+        val key = StringBuilder(source.length + 64).append(if (dark) 'd' else 'l').append('\u0001').append(source)
         for (sheet in sheets) key.append('\u0000').append(sheet.third)
         val cacheKey = key.toString()
 
@@ -266,8 +283,44 @@ private class ScreenExpander(
         return ExpandedScreen(out.joinToString("\n"), outLines)
     }
 
+    private fun flattenMedia(text: String, firstLine: Int, file: String?, linkLine: Int): String {
+        var t = text
+        while (true) {
+            val at = t.indexOf("@media")
+            if (at < 0) return t
+            val line = firstLine + t.substring(0, at).count { it == '\n' }
+            val open = t.indexOf('{', at)
+            if (open < 0) throw styleError("'@media' without '{'", line, "@media", file, linkLine)
+            var depth = 0
+            var close = -1
+            var i = open
+            while (i < t.length) {
+                val c = t[i]
+                if (c == '{') depth++
+                else if (c == '}') {
+                    depth--
+                    if (depth == 0) { close = i; break }
+                }
+                i++
+            }
+            if (close < 0) throw styleError("the '@media' block is never closed", line, "@media", file, linkLine)
+            val condition = t.substring(at + 6, open).trim().lowercase().replace(Regex("\\s+"), " ")
+            val include = when (condition.replace(": ", ":")) {
+                "(prefers-color-scheme:dark)" -> dark
+                "(prefers-color-scheme:light)" -> !dark
+                else -> throw styleError(
+                    "the '@media $condition' is not supported " +
+                        "(use '@media (prefers-color-scheme: dark)' or '... light')", line, "@media", file, linkLine
+                )
+            }
+            val replacement = if (include) t.substring(open + 1, close) else t.substring(at, close + 1).filter { it == '\n' }
+            t = t.substring(0, at) + replacement + t.substring(close + 1)
+        }
+    }
+
     private fun parseStyle(text: String, firstLine: Int, file: String? = null, linkLine: Int = 0) {
-        val clean = Rx.commentRegex.replace(text) { m -> m.value.filter { it == '\n' } }
+        val commentless = Rx.commentRegex.replace(text) { m -> m.value.filter { it == '\n' } }
+        val clean = flattenMedia(commentless, firstLine, file, linkLine)
         for (m in Rx.ruleRegex.findAll(clean)) {
             val selectorGroup = m.groups[1]!!
             val selectorText = selectorGroup.value
@@ -283,15 +336,31 @@ private class ScreenExpander(
                 declarations.add(Pair(name, value))
             }
             for (raw in selectorText.split(",")) {
-                val selector = raw.trim()
+                val full = raw.trim()
+                var selector = full
+                var state = STATE_NONE
+                val colon = full.indexOf(':')
+                if (colon > 0) {
+                    state = when (full.substring(colon + 1).lowercase()) {
+                        "pressed", "active" -> STATE_PRESSED
+                        "disabled" -> STATE_DISABLED
+                        "focus" -> STATE_FOCUS
+                        else -> throw styleError(
+                            "the selector '$full' is not supported (states: :pressed, :disabled, :focus)",
+                            line, full, file, linkLine
+                        )
+                    }
+                    selector = full.substring(0, colon)
+                }
+                val list = rules as ArrayList<Rule>
                 when {
-                    selector == ":root" -> {
+                    selector == ":root" && state == STATE_NONE -> {
                         for (d in declarations) if (d.first.startsWith("--")) variables[d.first] = d.second
                     }
-                    Rx.tagSelector.matches(selector) -> (rules as ArrayList<Rule>).add(Rule(KIND_TAG, selector.lowercase(), declarations, ruleOrder++, line, file, linkLine))
-                    Rx.classSelector.matches(selector) -> (rules as ArrayList<Rule>).add(Rule(KIND_CLASS, selector.substring(1), declarations, ruleOrder++, line, file, linkLine))
-                    Rx.idSelector.matches(selector) -> (rules as ArrayList<Rule>).add(Rule(KIND_ID, selector.substring(1), declarations, ruleOrder++, line, file, linkLine))
-                    else -> throw styleError("the selector '$selector' is not supported", line, selector, file, linkLine)
+                    Rx.tagSelector.matches(selector) -> list.add(Rule(KIND_TAG, selector.lowercase(), declarations, ruleOrder++, line, file, linkLine, state))
+                    Rx.classSelector.matches(selector) -> list.add(Rule(KIND_CLASS, selector.substring(1), declarations, ruleOrder++, line, file, linkLine, state))
+                    Rx.idSelector.matches(selector) -> list.add(Rule(KIND_ID, selector.substring(1), declarations, ruleOrder++, line, file, linkLine, state))
+                    else -> throw styleError("the selector '$full' is not supported", line, full, file, linkLine)
                 }
             }
         }
@@ -643,9 +712,9 @@ private class ScreenExpander(
         return sb.toString()
     }
 
-    private fun styleFor(tag: String, classes: List<String>, id: String?): String {
+    private fun styleFor(tag: String, classes: List<String>, id: String?, state: Int = STATE_NONE): String {
         val matched = rules.filter {
-            when (it.kind) {
+            it.state == state && when (it.kind) {
                 KIND_TAG -> it.name == tag
                 KIND_CLASS -> it.name in classes
                 else -> id != null && it.name == id
@@ -688,7 +757,14 @@ private class ScreenExpander(
             }
             attrs.add(AttrPlan(a.groupValues[1], key, value, brace, single, textParts))
         }
-        val plan = DynTag(name, lower, selfClose, styleFor(lower, classes, id), attrs.toTypedArray())
+        val plan = DynTag(
+            name, lower, selfClose, styleFor(lower, classes, id), attrs.toTypedArray(),
+            arrayOf(
+                styleFor(lower, classes, id, STATE_PRESSED),
+                styleFor(lower, classes, id, STATE_DISABLED),
+                styleFor(lower, classes, id, STATE_FOCUS)
+            )
+        )
         return if (anyBrace) plan else Lit(renderDyn(plan, 0, EMPTY_SCOPE))
     }
 
@@ -715,6 +791,7 @@ private class ScreenExpander(
         val inlineStyle = inline.trim().trimEnd(';').trim()
         if (inlineStyle.isNotEmpty()) parts.add(inlineStyle)
         if (parts.isNotEmpty()) result.add(Attr("style", parts.joinToString("; ")))
+        for (k in 0 until 3) if (t.stateStyles[k].isNotEmpty()) result.add(Attr(STATE_ATTRIBUTES[k], t.stateStyles[k]))
 
         val sb = StringBuilder("<")
         sb.append(if (t.lower == "body") "div" else t.name)
