@@ -88,11 +88,22 @@ To try a screen without creating a project, install the editor app: download <co
 Screenshots of the test editor app (<code>android/app</code>), with the code, the data and the live preview.
 </p>
 
-<div align="center">
-<img src="img/Css.jpg" alt="Test editor: CSS" width="200">
-<img src="img/nl.jpg" alt="Test editor: .nl file" width="200">
-<img src="img/output.jpg" alt="Test editor: live preview" width="200">
-</div>
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="img/nl.jpg" alt="Test editor: .nl file" width="100%"><br>
+      <sub><b>.nl</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="img/Css.jpg" alt="Test editor: CSS" width="100%"><br>
+      <sub><b>CSS</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="img/output.jpg" alt="Test editor: live preview" width="100%"><br>
+      <sub><b>Output</b></sub>
+    </td>
+  </tr>
+</table>
 
 ## Install (Android)
 
