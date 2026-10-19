@@ -52,7 +52,7 @@ Warnings (the screen still works):
 
 | Target | Status | Notes (proposal) |
 |---|---|---|
-| Android, Kotlin | engine and host exist | needs the expander and the verbs |
+| Android, Kotlin | implemented | engine, host, expander and verbs |
 | Python, Kivy | planned | flex and rounded corners drawn by hand |
 | Python, Tkinter | planned | no flex and no rounded corners: gap and radius ignored with a warning |
 
