@@ -35,6 +35,13 @@ internal class NLBox(context: Context) : LinearLayout(context) {
 
     private val lines = ArrayList<Line>()
 
+    init {
+        // overflow is visible by default (SPEC 4.3): a child may be drawn outside the box,
+        // for example a <legend> pulled up onto the border of its <fieldset> with a negative margin
+        clipChildren = false
+        clipToPadding = false
+    }
+
     private val wrapped: Boolean get() = wrap && orientation == HORIZONTAL
 
     private fun clamp(spec: Int, max: Int): Int {
