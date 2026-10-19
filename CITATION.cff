@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use nativelayout, please cite the article below."
+title: "nativelayout"
+type: software
+authors:
+  - family-names: "Rafael"
+    given-names: "Adilson C."
+repository-code: "https://github.com/getnativelayout/nativelayout"
+license: MPL-2.0
+preferred-citation:
+  type: generic
+  authors:
+    - family-names: "Rafael"
+      given-names: "Adilson C."
+  title: "Describing Native Android Interfaces with HTML and CSS: A Proposal for Simplification"
+  year: 2026
+  doi: "10.5281/zenodo.23470439"
+  publisher:
+    name: "Zenodo"
+  url: "https://doi.org/10.5281/zenodo.23470439"
