@@ -45,16 +45,16 @@ If your project has no `dependencyResolutionManagement`, put the same line in `a
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7")
 }
 ```
 
 ```groovy
 // app/build.gradle
 dependencies {
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6'
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7'
 }
 ```
 
@@ -62,7 +62,7 @@ dependencies {
 |---|---|
 | group | `com.github.getnativelayout.nativelayout` |
 | artifact | `nativelayout-android` or `nativelayout-core` |
-| version | a tag of the repository, for example `v0.1.6` |
+| version | a tag of the repository, for example `v0.1.7` |
 
 Add both artifacts, with the same version. Depend on `nativelayout-core` alone only if you want the parser and Expander on a plain JVM. Minimum SDK: 21.
 
@@ -195,6 +195,8 @@ Each example folder has its own README with the steps to run it.
 ## The editor app
 
 `app` is an editor with live preview, used to test screens on the device: code, data, preview and file tree. `DemoActivity` is a worked example built on `NativeView`.
+
+To try nativelayout, install the editor: download `nativelayout-debug.apk` from [Releases](https://github.com/getnativelayout/nativelayout/releases) and open it. No project and no library are needed. The editor uses the `core` and `android` modules of the same commit, so a build from any commit shows the engine of that commit.
 
 ### Build the APK from the phone
 
