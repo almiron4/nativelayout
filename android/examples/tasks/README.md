@@ -123,6 +123,9 @@ Build and install. The screen is created from `tasks.nl` as native views, with t
 - Type a title and tap `Add`. The field is cleared.
 - Tap `Clear completed` to drop every finished task.
 - Close and reopen the app. The tasks are still there.
+- Press and hold a card, a chip or a button: the pressed color shows while your finger is down.
+- Done tasks are crossed out.
+- Switch the phone to the dark theme and reopen the app: the palette changes.
 
 ## What it covers
 
@@ -138,6 +141,11 @@ Build and install. The screen is created from `tasks.nl` as native views, with t
 | Tap by class with `clickIndex()` | `.card`, `.remove` |
 | `value` and `setValue` | the title field |
 | `save`, `load`, `exists` | task persistence |
+| `:pressed` state | `#add`, `.chip`, `.card`, `.remove`, `.ghost` in `tasks.css` |
+| `@media (prefers-color-scheme: dark)` | the dark palette at the top of `tasks.css` |
+| `linear-gradient` | progress bar fill |
+| `box-shadow` | task cards |
+| `text-decoration: line-through` | done tasks |
 
 ## How the logic works
 
