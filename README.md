@@ -76,6 +76,12 @@ The <code>.nl</code> file is the same everywhere. Each language only needs an Ex
 Want to add a language? See <a href="#contributing">Contributing</a>.
 </p>
 
+## Try it
+
+<p align="justify">
+To try a screen without creating a project, install the editor app: download <code>nativelayout-debug.apk</code> from <a href="https://github.com/getnativelayout/nativelayout/releases">Releases</a>. It has the code, the data (JSON), a live preview and a file tree. Every push also builds it, see the Actions tab and <a href="CONTRIBUTING.md#11-continuous-integration">CONTRIBUTING.md, section 11</a>.
+</p>
+
 ## Install (Android)
 
 <p align="justify">
@@ -98,8 +104,8 @@ Then add the dependency:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.6")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.6")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7")
 }
 ```
 
