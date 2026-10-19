@@ -5,10 +5,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
 package nativelayout.core
@@ -31,7 +27,7 @@ sealed class Size {
 }
 
 enum class Direction { COLUMN, ROW }
-enum class Justify { START, CENTER, END }
+enum class Justify { START, CENTER, END, BETWEEN, AROUND, EVENLY }
 enum class Align { START, CENTER, END, STRETCH }
 enum class TextAlign { START, CENTER, END }
 enum class FieldType { TEXT, PASSWORD, NUMBER, AREA }
@@ -43,12 +39,46 @@ data class Sides(
     val left: Length = Length.ZERO
 )
 
+/** The four corners of a rounded box, in the CSS order: top-left, top-right, bottom-right, bottom-left. */
+data class Corners(
+    val topLeft: Length = Length.ZERO,
+    val topRight: Length = Length.ZERO,
+    val bottomRight: Length = Length.ZERO,
+    val bottomLeft: Length = Length.ZERO
+)
+
 object Colors {
     val BLACK: Int = 0xFF000000.toInt()
     val WHITE: Int = 0xFFFFFFFF.toInt()
     val BUTTON_GRAY: Int = 0xFFE0E0E0.toInt()
     val BORDER_GRAY: Int = 0xFF767676.toInt()
 }
+
+enum class TextTransform { NONE, UPPERCASE, LOWERCASE, CAPITALIZE }
+enum class FontFamily { DEFAULT, SANS, SERIF, MONOSPACE }
+
+sealed class LineHeight {
+    /** Unitless number: a multiple of the font size. */
+    data class Multiple(val value: Float) : LineHeight()
+    data class Fixed(val length: Length) : LineHeight()
+}
+
+/** linear-gradient: [angle] in CSS degrees (0 = to top, 90 = to right, 180 = to bottom). */
+data class Gradient(val angle: Int, val colors: List<Int>)
+
+/** What changes while the element is pressed, focused or disabled. Null means unchanged. */
+data class StateStyle(
+    val backgroundColor: Int? = null,
+    val textColor: Int? = null,
+    val borderColor: Int? = null,
+    val opacity: Float? = null
+)
+
+data class StateStyles(
+    val pressed: StateStyle? = null,
+    val disabled: StateStyle? = null,
+    val focused: StateStyle? = null
+)
 
 data class NativeStyle(
     val textColor: Int = Colors.BLACK,
@@ -61,16 +91,44 @@ data class NativeStyle(
     val padding: Sides = Sides(),
     val margin: Sides = Sides(),
     val borderRadius: Length = Length.ZERO,
+    /** Different radius per corner. When not null it replaces [borderRadius]. */
+    val corners: Corners? = null,
     val borderWidth: Length = Length.ZERO,
     val borderColor: Int = Colors.BLACK,
     val direction: Direction = Direction.COLUMN,
     val justify: Justify = Justify.START,
     val alignItems: Align = Align.STRETCH,
     val gap: Length = Length.ZERO,
-    val flex: Float = 0f
+    val flex: Float = 0f,
+    val opacity: Float = 1f,
+    val italic: Boolean = false,
+    val underline: Boolean = false,
+    val strike: Boolean = false,
+    val letterSpacing: Length = Length.ZERO,
+    val lineHeight: LineHeight? = null,
+    val textTransform: TextTransform = TextTransform.NONE,
+    val fontFamily: FontFamily = FontFamily.DEFAULT,
+    val minWidth: Length? = null,
+    val maxWidth: Length? = null,
+    val minHeight: Length? = null,
+    val maxHeight: Length? = null,
+    val overflowHidden: Boolean = false,
+    val alignSelf: Align? = null,
+    val wrap: Boolean = false,
+    val elevation: Length = Length.ZERO,
+    val gradient: Gradient? = null,
+    val states: StateStyles? = null
 )
 
-data class Span(val text: String, val bold: Boolean, val color: Int, val size: Length)
+data class Span(
+    val text: String,
+    val bold: Boolean,
+    val color: Int,
+    val size: Length,
+    val italic: Boolean = false,
+    val underline: Boolean = false,
+    val strike: Boolean = false
+)
 
 sealed class Native(
     val id: String?,
@@ -88,7 +146,9 @@ sealed class Native(
 
 class NativeBox(
     id: String?, classes: List<String>, style: NativeStyle, line: Int,
-    val children: List<Native>, val virtual: Boolean = false
+    val children: List<Native>, val virtual: Boolean = false,
+    /** A <dialog>: a layer drawn over the whole screen, above the other blocks. */
+    val overlay: Boolean = false
 ) : Native(id, classes, style, line)
 
 class NativeText(
@@ -163,7 +223,7 @@ fun Native.sameAs(o: Native): Boolean {
         this is NativeCheckbox && o is NativeCheckbox -> checked == o.checked && disabled == o.disabled
         this is NativeImage && o is NativeImage -> source == o.source && description == o.description
         this is NativeItem && o is NativeItem -> marker == o.marker
-        this is NativeBox && o is NativeBox -> virtual == o.virtual
+        this is NativeBox && o is NativeBox -> virtual == o.virtual && overlay == o.overlay
         else -> true
     }
     if (!same) return false
