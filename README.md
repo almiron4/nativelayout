@@ -220,11 +220,9 @@ panel.nl + data  ->  Expander  ->  HTML with inline styles  ->  Engine  ->  nati
 
 ## Repository layout
 
-```
-android/     Kotlin implementation (core, android, app), with its own README and examples
-SPEC.md      the specification: index and overview, shared by every language
-docs/spec/   the specification, split by subject (the section numbers do not change)
-```
+<p align="center">
+  <img src="img/structure.svg" alt="Repository layout: android/ (core, android, app, examples), the specification (SPEC.md, docs/spec/) and the project files" width="100%">
+</p>
 
 ## Contributing
 
