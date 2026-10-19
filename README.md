@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="img/nl.jpg" alt="nativelayout" width="140">
+<img src="img/logo.jpg" alt="nativelayout" width="140">
 
 <h1>nativelayout</h1>
 
@@ -81,6 +81,18 @@ Want to add a language? See <a href="#contributing">Contributing</a>.
 <p align="justify">
 To try a screen without creating a project, install the editor app: download <code>nativelayout-debug.apk</code> from <a href="https://github.com/getnativelayout/nativelayout/releases">Releases</a>. It has the code, the data (JSON), a live preview and a file tree. Every push also builds it, see the Actions tab and <a href="CONTRIBUTING.md#11-continuous-integration">CONTRIBUTING.md, section 11</a>.
 </p>
+
+## Test editor
+
+<p align="justify">
+Screenshots of the test editor app (<code>android/app</code>), with the code, the data and the live preview.
+</p>
+
+<div align="center">
+<img src="img/Css.jpg" alt="Test editor: CSS" width="200">
+<img src="img/nl.jpg" alt="Test editor: .nl file" width="200">
+<img src="img/output.jpg" alt="Test editor: live preview" width="200">
+</div>
 
 ## Install (Android)
 
