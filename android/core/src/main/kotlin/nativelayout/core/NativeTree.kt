@@ -66,6 +66,17 @@ sealed class LineHeight {
 /** linear-gradient: [angle] in CSS degrees (0 = to top, 90 = to right, 180 = to bottom). */
 data class Gradient(val angle: Int, val colors: List<Int>)
 
+enum class AnimKind { NONE, FADE, SLIDE_UP, SLIDE_LEFT }
+
+/** Entrance animation of a screen (`body`) or of a layer (`dialog`). [durationMs] is in milliseconds. */
+data class Animation(val kind: AnimKind, val durationMs: Int = 200)
+
+/** What a screen and a layer do when they appear and the CSS says nothing: a short fade. */
+object DefaultAnimations {
+    val SCREEN = Animation(AnimKind.FADE, 220)
+    val LAYER = Animation(AnimKind.FADE, 160)
+}
+
 /** What changes while the element is pressed, focused or disabled. Null means unchanged. */
 data class StateStyle(
     val backgroundColor: Int? = null,
@@ -117,6 +128,8 @@ data class NativeStyle(
     val wrap: Boolean = false,
     val elevation: Length = Length.ZERO,
     val gradient: Gradient? = null,
+    /** Only read on `body` and `dialog`. Null means the default ([DefaultAnimations]). Not inherited. */
+    val animation: Animation? = null,
     val states: StateStyles? = null
 )
 
