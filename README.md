@@ -49,6 +49,7 @@ To cite this project, use the "Cite this repository" button on GitHub (see <a hr
 - **No functions, classes or variables in the file.** State and taps live in your code.
 - **Conditions and repetition**, so it is more than a static canvas.
 - **Efficient updates.** Each `render` is diffed against the previous screen and only the changes are applied. Text typed in a field is kept.
+- **Navigation and animation.** `go` and `goBack` move between screens, the system back button reaches the program, and screens and dialogs fade in by default.
 - **Fixed header and built-in icons.** `<header>` stays at the top while the screen scrolls, and `<img src="icon:arrow-left">` draws a built-in icon in the text color, with no image files.
 - **Clear errors** with the line of the `.nl` file.
 
@@ -128,8 +129,8 @@ Then add the dependency:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.10")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.10")
 }
 ```
 
@@ -152,7 +153,11 @@ An app is a set of screen functions. Each one holds its state, reads the taps an
 | `screen(name)` | base layer: loads a `.nl` file and returns a screen |
 | `state(initial)` | the state of the screen: the same object on every call, a new one after `go` |
 | `view(name, data)` | returns the screen to show, with its data |
-| `go(function)` | jumps to another screen function |
+| `go(function)` | jumps to another screen function; the current one stays behind it |
+| `goRoot(function)` | like `go`, and forgets the screens behind (after a login or a logout) |
+| `goBack()` | the opposite of `go`: returns to the screen that jumped here |
+| `canGoBack()` | `true` when there is a screen to return to |
+| `back()` | `true` when the system back button woke the program; a screen that never asks gets `goBack()` |
 | `render(screen, data)` | base layer: shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
 | `click(target)` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | position, from 0, of the tapped element of the class |
@@ -201,6 +206,7 @@ A screen is one <code>.nl</code> file: zero or more linked stylesheets, an optio
 - Box: `padding` and `margin` (and each side), `border` (and `border-width`, `border-color`, `border-style`), `border-radius` (one to four values, or one corner with `border-top-left-radius` and the others), `box-shadow`.
 - Background: `color`, `background` with a color or a `linear-gradient`.
 - Text: `font-size`, `font-weight`, `font-style`, `font-family`, `text-align`, `text-decoration`, `text-transform`, `line-height`, `letter-spacing`.
+- Animation: `animation` on `body` and `dialog` (`fade`, `slide-up`, `slide-left`, `none`, and a time). Screens and dialogs fade in by default.
 - Units: `rem`, `px` (dp) and `0`. Percentages in `width`, `height`, `opacity` and `line-height`.
 - Not supported: descendant and child selectors, `:hover`, attribute selectors, other `@media` conditions, `<script>`.
 
