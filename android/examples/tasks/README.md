@@ -70,8 +70,8 @@ Without this step the build fails with `Couldn't find com.github.getnativelayout
 
 ```kotlin
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8")
 }
 ```
 
@@ -79,8 +79,8 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7'
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8'
 }
 ```
 
@@ -90,7 +90,7 @@ The coordinates are `group:artifact:version`:
 |---|---|
 | group | `com.github.getnativelayout.nativelayout` |
 | artifact | `nativelayout-android` and `nativelayout-core` |
-| version | a tag of the repository, for example `v0.1.7` |
+| version | a tag of the repository, for example `v0.1.8` |
 
 Add both artifacts, with the same version. Sync the project after editing.
 
