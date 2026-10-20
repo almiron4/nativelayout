@@ -29,10 +29,10 @@ object LayoutEngine {
 
 private val SUPPORTED_TAGS = setOf(
     "div", "span", "p", "h1", "h2", "h3", "button", "input", "textarea", "img", "ul", "li",
-    "fieldset", "legend", "dialog"
+    "fieldset", "legend", "dialog", "header"
 )
 private const val TAGS_SUGGESTION =
-    "supported tags: div, span, p, h1, h2, h3, button, input, textarea, img, ul, li, fieldset, legend, dialog"
+    "supported tags: div, span, p, h1, h2, h3, button, input, textarea, img, ul, li, fieldset, legend, dialog, header"
 private val FIELDSET_BORDER: Int = 0xFFBDBDBD.toInt()
 private val DIALOG_BACKDROP: Int = 0x80000000.toInt()
 private val BORDER_STYLES = setOf("solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset")
@@ -673,6 +673,13 @@ private class LayoutBuilder(
             "img" -> {
                 val src = el.attributes["src"]?.trim()?.takeIf { it.isNotEmpty() }
                     ?: throw err("<img> requires a src attribute", el.line, "<img")
+                val icon = IconSet.nameOf(src)
+                if (icon != null && IconSet.shapesOf(icon) == null) {
+                    throw err(
+                        "icon '$icon' does not exist", el.line, src,
+                        "icons: " + IconSet.names.joinToString(", ")
+                    )
+                }
                 NativeImage(id, classes, style, el.line, src, el.attributes["alt"] ?: "")
             }
             "ul" -> convertList(el, style, id, classes)
@@ -687,6 +694,12 @@ private class LayoutBuilder(
                         "put the <dialog> at the first level of the screen, next to the other blocks"
                     )
                 }
+                if (tag == "header" && myDepth != 1) {
+                    throw err(
+                        "<header> must be a direct child of the root tag", el.line, "<header",
+                        "put the <header> at the first level of the screen; it stays fixed at the top"
+                    )
+                }
                 val savedGroup = groupDisabled
                 if (tag == "fieldset" && "disabled" in el.attributes) groupDisabled = true
                 val found = try {
@@ -694,11 +707,18 @@ private class LayoutBuilder(
                 } finally {
                     groupDisabled = savedGroup
                 }
-                // the dialogs of the screen are layers: they come last, in the order they were written
+                // the <header> is fixed at the top and comes first; the dialogs of the screen are layers:
+                // they come last, in the order they were written
                 val children =
-                    if (myDepth == 0 && found.any { it is NativeBox && it.overlay })
-                        found.filter { !(it is NativeBox && it.overlay) } + found.filter { it is NativeBox && it.overlay }
-                    else found
+                    if (myDepth == 0 && found.any { it is NativeBox && (it.header || it.overlay) }) {
+                        val headers = found.filter { it is NativeBox && it.header }
+                        if (headers.size > 1) {
+                            throw err("a screen can have only one <header>", headers[1].line, "<header")
+                        }
+                        headers +
+                            found.filter { !(it is NativeBox && (it.header || it.overlay)) } +
+                            found.filter { it is NativeBox && it.overlay }
+                    } else found
                 val virtual = "virtual" in el.attributes
                 if (virtual) {
                     for (c in children) {
@@ -708,11 +728,14 @@ private class LayoutBuilder(
                     }
                 }
                 val only = children.singleOrNull()
-                val isGroup = tag == "dialog" || tag == "fieldset"
+                val isGroup = tag == "dialog" || tag == "fieldset" || tag == "header"
                 if (!virtual && !isGroup && only is NativeText) {
                     NativeText(id, classes, style, el.line, only.spans)
                 } else {
-                    NativeBox(id, classes, style, el.line, children, virtual, overlay = tag == "dialog")
+                    NativeBox(
+                        id, classes, style, el.line, children, virtual,
+                        overlay = tag == "dialog", header = tag == "header"
+                    )
                 }
             }
         }
