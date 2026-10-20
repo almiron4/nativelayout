@@ -1,6 +1,6 @@
 # nativelayout - Specification
 
-Status: draft v0.3. It replaces the draft where the markup lived inside Kotlin code.
+Status: draft v0.4. v0.4 adds `goRoot`, `goBack`, `canGoBack` and `back()` (section 8.6) and the `animation` property (section 4.6). It replaces the draft where the markup lived inside Kotlin code.
 
 License: this specification is licensed under [CC BY-SA 4.0](LICENSE-SPEC). Copyright (c) 2026 Adilson C. Rafael. The code examples in this document are also available under the [MPL 2.0](LICENSE).
 
