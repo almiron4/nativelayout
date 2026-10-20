@@ -45,16 +45,16 @@ If your project has no `dependencyResolutionManagement`, put the same line in `a
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.10")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.10")
 }
 ```
 
 ```groovy
 // app/build.gradle
 dependencies {
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8'
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.10'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.10'
 }
 ```
 
@@ -62,7 +62,7 @@ dependencies {
 |---|---|
 | group | `com.github.getnativelayout.nativelayout` |
 | artifact | `nativelayout-android` or `nativelayout-core` |
-| version | a tag of the repository, for example `v0.1.8` |
+| version | a tag of the repository, for example `v0.1.10` |
 
 Add both artifacts, with the same version. Depend on `nativelayout-core` alone only if you want the parser and Expander on a plain JVM. Minimum SDK: 21.
 
@@ -151,6 +151,31 @@ The `render` loop (`NativeView(context, area, loader) { ... }`) is still availab
 
 Always call `ui.close()` in `onDestroy`.
 
+### The back button
+
+The system back button is not handled by the `.nl` file: the activity passes it to the program, and a screen that never asks for it gets the default (`goBack()`, or `onExit` on the first screen).
+
+```kotlin
+import android.os.Build
+import android.window.OnBackInvokedDispatcher
+
+// in onCreate, after creating ui:
+ui.onExit = { finish() }
+if (Build.VERSION.SDK_INT >= 33) {
+    onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { ui.pressBack() }
+}
+
+// below Android 13 the old callback is used
+@Deprecated("Used below Android 13")
+override fun onBackPressed() = ui.pressBack()
+```
+
+To take over the button on one screen, ask for it with `back()` (for example, to close a dialog first). See `SPEC.md`, section 8.6.
+
+### Animation
+
+Screens and `<dialog>` layers fade in by default. Change it in the CSS with `animation` on `body` or `dialog`: `fade`, `slide-up`, `slide-left` or `none`, and an optional time such as `250ms`. See `SPEC.md`, section 4.6.
+
 ## API
 
 | Function | Does |
@@ -158,7 +183,12 @@ Always call `ui.close()` in `onDestroy`.
 | `screen(name)` | base layer: loads a `.nl` file through the loader and returns a `Screen` |
 | `state(initial)` | the state of the screen: the same object on every call, a new one after `go` |
 | `view(name, data)` | returns the screen to show, with its data |
-| `go(function)` | jumps to another screen function |
+| `go(function)` | jumps to another screen function; the current one stays behind it |
+| `goRoot(function)` | like `go`, and forgets the screens behind (after a login or a logout) |
+| `goBack()` | the opposite of `go`: returns to the screen that jumped here |
+| `canGoBack()` | `true` when there is a screen to return to |
+| `back()` | `true` when the system back button woke the program; a screen that never asks gets `goBack()` |
+| `pressBack()` | for the activity: tells the program that the system back button was pressed |
 | `render(screen, data)` | base layer: shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
 | `click(target)` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | position, from 0, of the tapped element of the class |
