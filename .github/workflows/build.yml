@@ -59,8 +59,9 @@ jobs:
           LIB=$(sed -n 's/^version = "\(.*\)"/\1/p' ../../android/build.gradle.kts | head -n1)
           test -n "$LIB"
           sed -i "s#implementation(\"com.github.getnativelayout.nativelayout:nativelayout-android:[^\"]*\")#implementation(\"io.github.getnativelayout:nativelayout-android:$LIB\")#" app/build.gradle.kts
+          sed -i "s#implementation(\"com.github.getnativelayout.nativelayout:nativelayout-core:[^\"]*\")#implementation(\"io.github.getnativelayout:nativelayout-core:$LIB\")#" app/build.gradle.kts
           sed -i 's#maven("https://jitpack.io")#maven("https://jitpack.io")\n        mavenLocal()#' settings.gradle.kts
-          grep -n "nativelayout-android" app/build.gradle.kts
+          grep -n "nativelayout-" app/build.gradle.kts
           grep -n "mavenLocal" settings.gradle.kts
 
       - name: Build the example APK
