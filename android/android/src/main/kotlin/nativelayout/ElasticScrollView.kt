@@ -12,6 +12,7 @@ package nativelayout
 import android.animation.ValueAnimator
 import android.content.Context
 import android.view.MotionEvent
+import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.ScrollView
 import kotlin.math.abs
@@ -56,7 +57,7 @@ internal class ElasticScrollView(context: Context) : ScrollView(context) {
         return super.onTouchEvent(ev)
     }
 
-    private fun springBack(child: android.view.View) {
+    private fun springBack(child: View) {
         val from = child.translationY
         if (from == 0f) return
         anim = ValueAnimator.ofFloat(from, 0f).apply {
