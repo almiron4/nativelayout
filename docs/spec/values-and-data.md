@@ -1,6 +1,6 @@
 # nativelayout - Specification: Values, control and data
 
-[Index](../../SPEC.md) | Previous: [Components and identity](components.md) | Next: [The program side](program-side.md)
+[Index](../../SPEC.md) | Previous: [Header and icons](header-and-icons.md) | Next: [The program side](program-side.md)
 
 ---
 
@@ -64,6 +64,6 @@ Kotlin uses `Map` and `List`, Python uses `dict` and `list`, so the same file re
 
 ---
 
-[Index](../../SPEC.md) | Previous: [Components and identity](components.md) | Next: [The program side](program-side.md)
+[Index](../../SPEC.md) | Previous: [Header and icons](header-and-icons.md) | Next: [The program side](program-side.md)
 
 License: [CC BY-SA 4.0](../../LICENSE-SPEC). Copyright (c) 2026 Adilson C. Rafael.
