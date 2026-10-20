@@ -182,7 +182,10 @@ class AndroidLayoutHost(
         val target = areaProvider()
         area = target
         val entry = createView(node, null)
-        val scroll = ScrollView(context).apply {
+        // before Android 12 there is no stretch effect: ElasticScrollView draws the rubber band itself
+        val scroll: ScrollView =
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) ElasticScrollView(context) else ScrollView(context)
+        scroll.apply {
             isFillViewport = true
             addView(entry.view, rootParams(node.style))
         }
