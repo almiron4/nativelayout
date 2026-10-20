@@ -152,7 +152,7 @@ Open an issue and fill in every item below. Reports missing the first four items
 3. **The smallest `.nl` file** that shows the problem, in a code block. Remove everything that is not needed. Include the linked `.css` if the style is involved.
 4. **The data** you passed to `view` (or `render`), as a Kotlin `mapOf(...)` or as JSON-like text.
 5. **The taps or steps** that lead to the problem (for example: tap Add, then tap the second card).
-6. **Version**: the tag you depend on (for example `v0.1.7`), or the commit if you build from source.
+6. **Version**: the tag you depend on (for example `v0.1.8`), or the commit if you build from source.
 7. **Device**: model, Android version, and font scale if you changed it.
 8. **A screenshot**, when the problem is visual.
 
@@ -371,7 +371,7 @@ If a job fails:
 
 1. Make sure `main` is green.
 2. Raise the version in `android/core/build.gradle.kts` and `android/android/build.gradle.kts` when the library changes.
-3. Create a GitHub release with a new tag, for example `v0.1.7`, targeting `main`. The tag must point to a commit that already contains `jitpack.yml`.
+3. Create a GitHub release with a new tag, for example `v0.1.9`, targeting `main`. The tag must point to a commit that already contains `jitpack.yml`.
 4. Open `https://jitpack.io/#getnativelayout/nativelayout`, go to Releases and tap Get it on the new tag.
 5. When the log icon is green, the version is available as `com.github.getnativelayout.nativelayout:nativelayout-android:<tag>`.
 
