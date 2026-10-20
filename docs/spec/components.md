@@ -1,6 +1,6 @@
 # nativelayout - Specification: Components and identity
 
-[Index](../../SPEC.md) | Previous: [Layers and groups](layers-and-groups.md) | Next: [Values, control and data](values-and-data.md)
+[Index](../../SPEC.md) | Previous: [Layers and groups](layers-and-groups.md) | Next: [Header and icons](header-and-icons.md)
 
 ---
 
@@ -97,6 +97,6 @@ fun NativeView.ShopScreen(): Page {
 
 ---
 
-[Index](../../SPEC.md) | Previous: [Layers and groups](layers-and-groups.md) | Next: [Values, control and data](values-and-data.md)
+[Index](../../SPEC.md) | Previous: [Layers and groups](layers-and-groups.md) | Next: [Header and icons](header-and-icons.md)
 
 License: [CC BY-SA 4.0](../../LICENSE-SPEC). Copyright (c) 2026 Adilson C. Rafael.
