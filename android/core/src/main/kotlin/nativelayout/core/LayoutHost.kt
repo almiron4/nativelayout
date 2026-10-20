@@ -11,6 +11,9 @@ package nativelayout.core
 
 class LayoutEvent(val key: String)
 
+/** Key of the event the host sends when the system back button is pressed. It belongs to no element. */
+const val BACK_EVENT_KEY = "\u0000back"
+
 interface LayoutHost {
     fun applyChanges(changes: List<Change>)
 
@@ -120,6 +123,9 @@ class LayoutSession(private val host: LayoutHost) {
     }
 
     fun clickIndex(): Int = clickedIndex
+
+    /** True when the event that woke the program is the system back button. */
+    fun isBack(): Boolean = lastEvent?.key == BACK_EVENT_KEY
 
     /** Forgets the tree on screen: the next render builds everything from scratch (used when the screen changes). */
     fun reset() {
