@@ -37,7 +37,7 @@ object LayoutDiffer {
 
     private fun compare(a: Native, n: Native, removed: MutableList<Change>, rest: MutableList<Change>) {
         if (a is NativeBox && n is NativeBox) {
-            if (a.virtual != n.virtual || a.overlay != n.overlay) {
+            if (a.virtual != n.virtual || a.overlay != n.overlay || a.header != n.header) {
                 rest.add(Change.Replace(n.key, n))
                 return
             }
