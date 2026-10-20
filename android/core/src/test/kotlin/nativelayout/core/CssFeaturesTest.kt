@@ -32,6 +32,20 @@ class CssFeaturesTest {
 
     private fun color(argb: Long): Int = argb.toInt()
 
+    // ---------- animation ----------
+
+    @Test
+    fun animation() {
+        assertNull(styleOf("").animation)
+        assertEquals(Animation(AnimKind.FADE, 200), styleOf("animation: fade").animation)
+        assertEquals(Animation(AnimKind.SLIDE_UP, 250), styleOf("animation: slide-up 250ms").animation)
+        assertEquals(Animation(AnimKind.SLIDE_LEFT, 500), styleOf("animation: slide-left 0.5s").animation)
+        assertEquals(Animation(AnimKind.NONE, 200), styleOf("animation: none").animation)
+        assertNull(styleOf("", "animation: slide-up").animation)
+        assertTrue(warnsOf("animation: spin").isNotEmpty())
+        assertTrue(warnsOf("animation: fade 5s").isNotEmpty())
+    }
+
     // ---------- text ----------
 
     @Test
