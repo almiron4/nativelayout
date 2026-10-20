@@ -76,7 +76,11 @@ fun NativeView.LoginScreen(): Page {
 |---|---|---|
 | `state(initial)` | `state` | the state of the screen: the same object on every call, a new one after `go` |
 | `view(screen, data)` | `view` | returns the screen to show, with its data |
-| `go(function)` | `go` | returns a jump to another screen function |
+| `go(function)` | `go` | returns a jump to another screen function; the current one stays behind it, so `goBack` can return (section 8.6) |
+| `goRoot(function)` | `go_root` | like `go`, and forgets the screens behind (after a login or a logout) |
+| `goBack()` | `go_back` | returns to the screen that jumped here (section 8.6) |
+| `canGoBack()` | `can_go_back` | `true` when there is a screen to return to |
+| `back()` | `back` | `true` when the system back button woke the program (section 8.6) |
 | `click(target)` | `click` | `true` if the `id` (or `".class"`) was tapped |
 | `clicked(name)` | `clicked` | the item of the `for name in ...` where the last tap happened (section 5.7) |
 | `clickIndex()` | `click_index` | position, from 0, of the tapped element of the class |
@@ -93,7 +97,8 @@ fun NativeView.LoginScreen(): Page {
 - The data given to `view` is plain, as in section 7.
 - `go(function)` leaves the current screen. Its state is dropped, the tree is built from scratch (section 9, point 6) and the new function is called at once, with no tap yet. More than 8 `go` in a row without a `view` is an error.
 - A screen file is read once and kept, so `view` is cheap on every call.
-- Coming back to a screen starts it again with a new state. To keep something between screens, use `save` and `load`.
+- Coming back to a screen (with `goBack`) starts it again with a new state. To keep something between screens, use `save` and `load`.
+- A screen shown with `go` or `goBack` appears with the default animation (section 4.6). A `<dialog>` that appears does the same.
 
 Examples of `go`:
 
@@ -199,6 +204,38 @@ with NativeView(app) as ui:
         if ui.click("add"):
             pending += 1
 ```
+
+### 8.6 Going back and the back button
+
+`go` keeps a stack: the function that jumps stays behind the new one. `goBack()` is the opposite of `go`: it drops the current screen and shows the one that jumped here, starting it again with a new state.
+
+```kotlin
+fun NativeView.AddScreen(): Page {
+    if (click("cancel")) return goBack()
+    if (click("save")) { saveTask(value("title")); return goBack() }
+    return view("add.nl", mapOf())
+}
+```
+
+- `go` adds the current screen to the stack. `goRoot` empties it: after a login, the back button must not return to the login screen.
+- `goBack()` on the first screen (empty stack) leaves the screen as it is and calls the exit callback of the host, if there is one.
+- `canGoBack()` tells whether the stack has a screen.
+- **The system back button.** The host tells the program, it does not handle it alone. `back()` is `true` when the button woke the program. A screen that never asks for it gets the default: `goBack()`, or the exit callback on the first screen. A screen that asks for it takes over, for example to close a dialog first:
+
+```kotlin
+fun NativeView.HomeScreen(): Page {
+    val s = state { mutableMapOf<String, Any?>("confirm" to false) }
+
+    if (back() || click("cancel")) {
+        if (s["confirm"] == true) s["confirm"] = false      // the dialog closes
+        else return goBack()                                // otherwise the default
+    }
+    ...
+}
+```
+
+- `back()` and the default apply once per tap: the button is one more event in the queue, like a tap, and `click(...)` is `false` for it.
+- Each host connects the system button its own way. On Android the activity calls `ui.pressBack()` (see `android/README.md`).
 
 ---
 
