@@ -40,5 +40,6 @@ kotlin {
 }
 
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.5")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8")
 }
