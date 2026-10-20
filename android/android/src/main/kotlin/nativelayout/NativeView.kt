@@ -32,7 +32,8 @@ import kotlin.coroutines.suspendCoroutine
 sealed class Page
 
 internal class ViewPage(val screen: NativeView.Screen, val data: Map<String, Any?>) : Page()
-internal class GoPage(val next: NativeView.() -> Page) : Page()
+internal class GoPage(val next: NativeView.() -> Page, val root: Boolean = false) : Page()
+internal object BackPage : Page()
 
 class NativeView(
     context: Context,
@@ -76,6 +77,14 @@ class NativeView(
     private val slots = ArrayList<Any?>()
     private var slotIndex = 0
     private var fresh = false
+
+    // Screens left behind by go(): goBack() returns to the last one. Each one starts again with a new state.
+    private val history = ArrayList<NativeView.() -> Page>()
+    private var backHandled = false
+    private var lastShown: ViewPage? = null
+
+    /** Called when the system back button is pressed on the first screen and the program did not handle it. */
+    var onExit: (() -> Unit)? = null
 
     fun screen(name: String): Screen {
         val source = loader(name) ?: throw IllegalArgumentException("screen not found: $name")
@@ -121,25 +130,72 @@ class NativeView(
     fun view(name: String, data: Map<String, Any?> = emptyMap()): Page =
         ViewPage(screens.getOrPut(name) { screen(name) }, data)
 
-    /** Jump to another screen function. The state of the current one is dropped. */
+    /** Jump to another screen function. The state of the current one is dropped, but [goBack] can return to it. */
     fun go(next: NativeView.() -> Page): Page = GoPage(next)
+
+    /** Jump to another screen function and forget the screens behind (after a login or a logout, for example). */
+    fun goRoot(next: NativeView.() -> Page): Page = GoPage(next, root = true)
+
+    /** The opposite of [go]: returns to the screen that jumped here. On the first screen it does nothing. */
+    fun goBack(): Page = BackPage
+
+    /** True when there is a screen to return to with [goBack]. */
+    fun canGoBack(): Boolean = history.isNotEmpty()
+
+    /**
+     * True when the system back button woke the program. Ask it to handle the button yourself
+     * (to close a dialog, for example). A screen that never asks gets the default: [goBack],
+     * or [onExit] on the first screen.
+     */
+    fun back(): Boolean {
+        if (fresh || !session.isBack()) return false
+        backHandled = true
+        return true
+    }
+
+    /** Call it from the activity when the system back button is pressed. Must run on the UI thread. */
+    fun pressBack() {
+        if (!closed) host.postBack()
+    }
 
     private suspend fun runApp(app: NativeView.() -> Page) {
         var current = app
         var hops = 0
         while (!closed) {
             slotIndex = 0
-            when (val page = current()) {
+            backHandled = false
+            var page = current()
+            if (!fresh && !backHandled && session.isBack()) {
+                if (history.isNotEmpty()) page = BackPage else onExit?.invoke()
+            }
+            if (page is BackPage && history.isEmpty()) {
+                // nothing to return to: the screen stays as it is
+                onExit?.invoke()
+                page = lastShown ?: throw IllegalStateException("goBack: there is no screen to return to")
+            }
+            when (page) {
                 is GoPage -> {
                     hops++
                     if (hops > 8) throw IllegalStateException("go: too many jumps without showing a screen")
+                    if (page.root) history.clear() else history.add(current)
                     current = page.next
+                    lastShown = null
+                    slots.clear()
+                    fresh = true
+                    session.reset()
+                }
+                is BackPage -> {
+                    hops++
+                    if (hops > 8) throw IllegalStateException("go: too many jumps without showing a screen")
+                    current = history.removeAt(history.size - 1)
+                    lastShown = null
                     slots.clear()
                     fresh = true
                     session.reset()
                 }
                 is ViewPage -> {
                     hops = 0
+                    lastShown = page
                     if (!render(page.screen, page.data)) return
                     fresh = false
                 }
