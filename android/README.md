@@ -45,16 +45,16 @@ If your project has no `dependencyResolutionManagement`, put the same line in `a
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8")
 }
 ```
 
 ```groovy
 // app/build.gradle
 dependencies {
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7'
-    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8'
+    implementation 'com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8'
 }
 ```
 
@@ -62,7 +62,7 @@ dependencies {
 |---|---|
 | group | `com.github.getnativelayout.nativelayout` |
 | artifact | `nativelayout-android` or `nativelayout-core` |
-| version | a tag of the repository, for example `v0.1.7` |
+| version | a tag of the repository, for example `v0.1.8` |
 
 Add both artifacts, with the same version. Depend on `nativelayout-core` alone only if you want the parser and Expander on a plain JVM. Minimum SDK: 21.
 
@@ -224,7 +224,7 @@ install:
 To release:
 
 1. Commit to `main`.
-2. Create a GitHub release with a new tag (for example `v0.1.7`).
+2. Create a GitHub release with a new tag (for example `v0.1.9`).
 3. Open `https://jitpack.io/#getnativelayout/nativelayout`, go to Releases and tap Get it on the new tag.
 4. When the log icon turns green, the version is available.
 
