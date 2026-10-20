@@ -513,11 +513,40 @@ private class LayoutBuilder(
             "gap" -> len()?.let { e.copy(gap = it) } ?: invalid()
             "width" -> CssValues.size(v)?.let { e.copy(width = it) } ?: invalid()
             "height" -> CssValues.size(v)?.let { e.copy(height = it) } ?: invalid()
+            "animation" -> animationOf(v)?.let { e.copy(animation = it) }
+                ?: run {
+                    warn("CSS: invalid value in 'animation: ${d.value}' (use none, fade, slide-up or slide-left, then an optional time like 200ms), ignored", d.line)
+                    e
+                }
             else -> {
                 warn("CSS: property '${d.name}' is not supported in v1 and was ignored", d.line)
                 e
             }
         }
+    }
+
+    /** `animation: <none | fade | slide-up | slide-left> [<time>]`, time in ms or s (0 to 2 s). */
+    private fun animationOf(v: String): Animation? {
+        val parts = v.lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (parts.isEmpty() || parts.size > 2) return null
+        val kind = when (parts[0]) {
+            "none" -> AnimKind.NONE
+            "fade" -> AnimKind.FADE
+            "slide-up" -> AnimKind.SLIDE_UP
+            "slide-left" -> AnimKind.SLIDE_LEFT
+            else -> return null
+        }
+        var ms = 200
+        if (parts.size == 2) {
+            val t = parts[1]
+            ms = when {
+                t.endsWith("ms") -> t.removeSuffix("ms").toFloatOrNull()?.toInt()
+                t.endsWith("s") -> t.removeSuffix("s").toFloatOrNull()?.let { (it * 1000f).toInt() }
+                else -> null
+            } ?: return null
+        }
+        if (ms < 0 || ms > 2000) return null
+        return Animation(kind, ms)
     }
 
     private fun isInline(el: HtmlElement): Boolean =
