@@ -19,6 +19,7 @@ The specification is split by subject, in the order of a first reading. The sect
 | 5.3 | Lists: `key` and `virtual` | [lists.md](docs/spec/lists.md) |
 | 5.4, 5.5 | Layers (`dialog`) and groups (`fieldset`, `legend`) | [layers-and-groups.md](docs/spec/layers-and-groups.md) |
 | 5.6, 5.7 | Components (`include`) and identity inside a `for` | [components.md](docs/spec/components.md) |
+| 5.8, 5.9 | Header (`header`) and built-in icons (`icon:name`) | [header-and-icons.md](docs/spec/header-and-icons.md) |
 | 6, 7 | Values, control lines, conditions, data | [values-and-data.md](docs/spec/values-and-data.md) |
 | 8, 9 | The program side and `render` | [program-side.md](docs/spec/program-side.md) |
 | 10, 11 | Errors and targets | [errors-and-targets.md](docs/spec/errors-and-targets.md) |
