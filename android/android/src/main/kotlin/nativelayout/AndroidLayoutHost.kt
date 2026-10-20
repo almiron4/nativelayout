@@ -76,6 +76,11 @@ class AndroidLayoutHost(
     private val pendingLayers = ArrayList<View>()
     private var layersReady = false
 
+    /** The <header>: it sits above the scroll, in its own holder, and does not scroll with the screen. */
+    private var pendingHeader: View? = null
+    private var headerHolder: FrameLayout? = null
+    private var column: LinearLayout? = null
+
     private val queue = ArrayDeque<LayoutEvent>()
     private var pending: Continuation<LayoutEvent?>? = null
     private var closed = false
@@ -166,6 +171,9 @@ class AndroidLayoutHost(
         rootKey = null
         pendingLayers.clear()
         layersReady = false
+        pendingHeader = null
+        headerHolder = null
+        column = null
         area?.removeAllViews()
     }
 
@@ -178,8 +186,21 @@ class AndroidLayoutHost(
             isFillViewport = true
             addView(entry.view, rootParams(node.style))
         }
+        val holder = FrameLayout(context)
+        val col = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(node.style.backgroundColor)
+            addView(holder, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
+            addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        }
+        headerHolder = holder
+        column = col
+        pendingHeader?.let { holder.addView(it, headerParams(it)) }
+        pendingHeader = null
         target.removeAllViews()
-        target.addView(scroll, FrameLayout.LayoutParams(
+        target.addView(col, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
         ))
         for (layer in pendingLayers) target.addView(layer, layerParams())
@@ -189,6 +210,20 @@ class AndroidLayoutHost(
     }
 
     private fun isLayer(n: Native): Boolean = n is NativeBox && n.overlay
+
+    private fun isHeader(n: Native): Boolean = n is NativeBox && n.header
+
+    private fun headerParams(view: View): FrameLayout.LayoutParams {
+        val style = (view.tag as? String)?.let { entries[it]?.style }
+        return if (style != null) rootParams(style)
+        else FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    /** The <header> goes above the scroll. While the screen is being built it waits. */
+    private fun attachHeader(view: View) {
+        val holder = headerHolder
+        if (layersReady && holder != null) holder.addView(view, headerParams(view)) else pendingHeader = view
+    }
 
     private fun layerParams() = FrameLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
@@ -208,7 +243,13 @@ class AndroidLayoutHost(
             attachLayer(created.view)
             return
         }
-        container.addView(created.view, minOf(a.position, container.childCount))
+        if (isHeader(a.node)) {
+            attachHeader(created.view)
+            return
+        }
+        // the <header> is the first child of the root in the tree, but it is not a view of the root
+        val shift = if (a.parentKey == rootKey && (headerHolder?.childCount ?: 0) > 0) 1 else 0
+        container.addView(created.view, (a.position - shift).coerceIn(0, container.childCount))
         applyPercents(created.view, created.style, container)
     }
 
@@ -232,16 +273,18 @@ class AndroidLayoutHost(
         val index = parent.indexOfChild(old.view)
         val parentEntry = entryOfParent(parent)
         val oldWasLayer = isLayer(old.node)
+        val oldWasHeader = isHeader(old.node)
         discard(old.view)
         parent.removeView(old.view)
         when {
             isLayer(a.node) -> attachLayer(createView(a.node, null).view)
-            oldWasLayer -> {
-                // a layer that stops being one goes back to the end of the root
+            isHeader(a.node) -> attachHeader(createView(a.node, rootKey?.let { entries[it]?.style }).view)
+            oldWasLayer || oldWasHeader -> {
+                // a layer that stops being one goes back to the end of the root, a header to the start
                 val rootEntry = rootKey?.let { entries[it] } ?: return
                 val container = rootEntry.container ?: return
                 val created = createView(a.node, rootEntry.style)
-                container.addView(created.view)
+                if (oldWasHeader) container.addView(created.view, 0) else container.addView(created.view)
                 applyPercents(created.view, created.style, container)
             }
             else -> {
@@ -262,6 +305,11 @@ class AndroidLayoutHost(
         entry.style = a.style
         applyStyle(entry)
         entry.list?.setStyle(a.style)
+        // the icons are painted with the text color
+        (entry.view as? ImageView)?.let { iv ->
+            val n = entry.node
+            if (n is NativeImage && IconSet.nameOf(n.source) != null) iv.setColorFilter(a.style.textColor)
+        }
 
         val parent = entry.view.parent as? ViewGroup
         val parentEntry = entryOfParent(parent)
@@ -269,6 +317,9 @@ class AndroidLayoutHost(
             entry.view.layoutParams = childParams(a.style, parentEntry.style)
             applyPercents(entry.view, a.style, parent)
         } else if (a.key == rootKey) {
+            entry.view.layoutParams = rootParams(a.style)
+            column?.setBackgroundColor(a.style.backgroundColor)
+        } else if (entry.view.parent === headerHolder) {
             entry.view.layoutParams = rootParams(a.style)
         }
 
@@ -386,6 +437,8 @@ class AndroidLayoutHost(
                 val childEntry = createView(child, node.style)
                 if (isLayer(child)) {
                     attachLayer(childEntry.view)
+                } else if (isHeader(child)) {
+                    attachHeader(childEntry.view)
                 } else {
                     container.addView(childEntry.view)
                     applyPercents(childEntry.view, childEntry.style, container)
@@ -437,6 +490,14 @@ class AndroidLayoutHost(
 
     private fun configureImage(iv: ImageView, node: NativeImage) {
         iv.contentDescription = node.description
+        val icon = IconSet.nameOf(node.source)?.let { IconSet.shapesOf(it) }
+        if (icon != null) {
+            val size = (IconSet.GRID * context.resources.displayMetrics.density).toInt()
+            iv.setImageDrawable(IconDrawable(icon, size))
+            iv.setColorFilter(node.style.textColor)
+            return
+        }
+        iv.clearColorFilter()
         val bitmap = loadImage(node.source)
         if (bitmap != null) {
             iv.setImageBitmap(bitmap)
