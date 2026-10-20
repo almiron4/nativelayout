@@ -41,6 +41,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
+import android.view.animation.DecelerateInterpolator
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -166,6 +167,11 @@ class AndroidLayoutHost(
         }
     }
 
+    /** The system back button was pressed. Call it on the UI thread. */
+    fun postBack() {
+        publish(BACK_EVENT_KEY)
+    }
+
     private fun reset() {
         entries.clear()
         rootKey = null
@@ -210,6 +216,7 @@ class AndroidLayoutHost(
         pendingLayers.clear()
         layersReady = true
         rootKey = node.key
+        animateIn(col, node.style.animation ?: DefaultAnimations.SCREEN, false)
     }
 
     private fun isLayer(n: Native): Boolean = n is NativeBox && n.overlay
@@ -235,7 +242,43 @@ class AndroidLayoutHost(
     /** A <dialog> goes over everything in the area. While the screen is being built it waits in a list. */
     private fun attachLayer(view: View) {
         val target = area
-        if (layersReady && target != null) target.addView(view, layerParams()) else pendingLayers.add(view)
+        if (layersReady && target != null) {
+            target.addView(view, layerParams())
+            val style = (view.tag as? String)?.let { entries[it]?.style }
+            animateIn(view, style?.animation ?: DefaultAnimations.LAYER, true)
+        } else {
+            pendingLayers.add(view)
+        }
+    }
+
+    /**
+     * Entrance animation of a screen (the whole column) or of a <dialog> layer.
+     * fade: the view goes from transparent to opaque. slide-up and slide-left also move the content:
+     * for a layer the backdrop fades and the first block (the sheet) is the one that moves.
+     */
+    private fun animateIn(view: View, anim: Animation, layer: Boolean) {
+        if (anim.kind == AnimKind.NONE || anim.durationMs <= 0) return
+        val duration = anim.durationMs.toLong()
+        val interpolator = DecelerateInterpolator()
+        val content: View =
+            if (layer && anim.kind != AnimKind.FADE) (view as? ViewGroup)?.getChildAt(0) ?: view else view
+
+        view.alpha = 0f
+        val fade = view.animate().alpha(1f)
+        val mover = if (content === view) fade else content.animate()
+        when (anim.kind) {
+            AnimKind.SLIDE_UP -> {
+                content.translationY = (if (layer) 96f else 32f) * density
+                mover.translationY(0f)
+            }
+            AnimKind.SLIDE_LEFT -> {
+                content.translationX = 32f * density
+                mover.translationX(0f)
+            }
+            else -> {}
+        }
+        fade.setDuration(duration).setInterpolator(interpolator).start()
+        if (mover !== fade) mover.setDuration(duration).setInterpolator(interpolator).start()
     }
 
     private fun create(a: Change.Create) {
