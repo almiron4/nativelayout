@@ -42,7 +42,7 @@ A `<dialog>` is a layer drawn over the whole screen. It is how a dialog, a menu 
 - Whether the dialog is shown is the program's data, with `if`. The file does not open or close anything.
 - A `<dialog>` goes at the first level of the screen, next to the other blocks. Inside another block it is an error. It cannot be inside a `virtual` container.
 - Several dialogs are drawn in the order they are written, over the other blocks, which keep their order. A dialog is always placed after them in the tree.
-- The back button of the system, animations and dragging the sheet are the job of the host and are not in the file.
+- The back button of the system reaches the program as `back()` (section 8.6): the program closes the dialog by changing its data. The entrance animation is in section 4.6. Dragging the sheet is the job of the host and is not in the file.
 - What the operating system asks the user (permissions, choosing a file or a date, sharing) is not a layer: it is a verb of the program's API, not part of the `.nl`.
 
 ### 5.5 Groups: `<fieldset>` and `<legend>`
