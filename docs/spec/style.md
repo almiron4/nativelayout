@@ -39,6 +39,7 @@ A variable that is not declared in `:root` is an error.
 | Box | `padding`, `margin` (and `-top`, `-right`, `-bottom`, `-left` of each), `border` (and `border-width`, `border-color`, `border-style`), `border-radius` (one to four values) and `border-top-left-radius`, `border-top-right-radius`, `border-bottom-right-radius`, `border-bottom-left-radius`, `box-shadow` |
 | Background | `color`, `background` (and `background-color`, `background-image`) with a color or a `linear-gradient` |
 | Text | `font-size`, `font-weight`, `font-style`, `font-family`, `text-align`, `text-decoration`, `text-transform`, `line-height`, `letter-spacing` |
+| Animation | `animation`, only on `body` and `dialog` (section 4.6) |
 
 - Units: `rem`, `px` and `0`. `px` means dp (density-independent). `1rem = 16dp` times the font scale of the system. A percentage is accepted in `width`, `height`, `opacity` and `line-height`. `opacity` also takes a number from 0 to 1, and `line-height` a number that multiplies the font size.
 - Colors: `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, color names (`red`, `teal`, ...), `rgb()`, `rgba()`, `transparent` and `var(--name)`.
@@ -94,6 +95,29 @@ button:disabled { background: #CCCCCC; opacity: 0.6; }
 - The only conditions are `(prefers-color-scheme: dark)` and `(prefers-color-scheme: light)`. Any other `@media` is an error.
 - Inside the block go the same rules as outside, including `:root` variables. The block is part of the file in the place where it is written, so it overrides what comes before it at the same weight.
 - The host tells the Expander which theme is active. On Android, `NativeView` reads the system theme on every render. A host that has no theme treats it as light.
+
+### 4.6 Animation
+
+A screen and a `<dialog>` appear with a short fade by default, so a jump with `go` or a dialog that opens does not cut. The default stays until the CSS changes it.
+
+```css
+body   { animation: slide-left 250ms; }   /* the screen */
+dialog { animation: slide-up 200ms; }     /* the layer */
+.plain { animation: none; }
+```
+
+| Value | Effect |
+|---|---|
+| `fade` | from transparent to opaque. The default: 220 ms for a screen, 160 ms for a layer |
+| `slide-up` | fades in and rises. On a `<dialog>` the backdrop fades and the first block (the sheet) rises |
+| `slide-left` | fades in and comes from the right |
+| `none` | appears at once |
+
+- Written as `animation: <name> [<time>]`. The time is in `ms` or `s`, from 0 to 2 s; without it, 200 ms. Anything else is a warning and the default stays.
+- It is read only on `body` (the whole screen) and on `dialog`. On any other tag it has no effect. It is not inherited.
+- The screen animation plays when a screen is built from scratch: the first screen, and after `go`, `goRoot` or `goBack`. A normal `render` (the same screen with new data) does not animate.
+- The layer animation plays when the `<dialog>` is created, that is, when its `if` becomes true. A dialog that closes disappears at once in v1.
+- A target that cannot animate ignores the property, with a warning, never an error.
 
 ---
 
