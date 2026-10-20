@@ -15,10 +15,11 @@
 | `button` | button (text only) |
 | `input` (`text`, `password`, `number`, `checkbox`) | field or checkbox |
 | `textarea` | multi-line field |
-| `img` | image |
+| `img` | image, or a built-in icon (section 5.9) |
 | `ul`, `li` | list; each `li` gets a bullet |
 | `fieldset`, `legend` | bordered group with a title (section 5.5) |
 | `dialog` | layer over the screen: dialog or sheet (section 5.4) |
+| `header` | bar fixed at the top of the screen (section 5.8) |
 | `include` | a component written in another `.nl` file (section 5.6) |
 
 A tag outside this list is an error.
@@ -37,7 +38,7 @@ The whole screen scrolls: the root sits in one vertical scroll container. A long
 | `value` | initial text of a field |
 | `checked` | initial state of a checkbox |
 | `disabled`, `readonly` | blocks the element; on a `fieldset`, blocks everything inside it (section 5.5) |
-| `src`, `alt` | image: a `data:` URI or a name resolved by the host; no network in v1 |
+| `src`, `alt` | image: a `data:` URI, a built-in icon `icon:name` (section 5.9) or a name resolved by the host; no network in v1 |
 | `rows` | lines of a `textarea` |
 | `key` | stable name of an item among its siblings (section 5.3) |
 | `virtual` | marks a container as a long list (section 5.3) |
