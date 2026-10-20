@@ -49,6 +49,7 @@ To cite this project, use the "Cite this repository" button on GitHub (see <a hr
 - **No functions, classes or variables in the file.** State and taps live in your code.
 - **Conditions and repetition**, so it is more than a static canvas.
 - **Efficient updates.** Each `render` is diffed against the previous screen and only the changes are applied. Text typed in a field is kept.
+- **Fixed header and built-in icons.** `<header>` stays at the top while the screen scrolls, and `<img src="icon:arrow-left">` draws a built-in icon in the text color, with no image files.
 - **Clear errors** with the line of the `.nl` file.
 
 ## Implementations
@@ -127,8 +128,8 @@ Then add the dependency:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.7")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.7")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.8")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.8")
 }
 ```
 
@@ -187,7 +188,8 @@ A screen is one <code>.nl</code> file: zero or more linked stylesheets, an optio
 | `button` | button |
 | `input` (`text`, `password`, `number`, `checkbox`) | field or checkbox |
 | `textarea` | multi-line field |
-| `img` | image (`data:` URI or a name resolved by the host) |
+| `img` | image (`data:` URI, a built-in icon `icon:<name>`, or a name resolved by the host) |
+| `header` | bar fixed at the top of the screen, outside the scroll; direct child of the root, one per screen |
 | `ul`, `li` | list with bullets |
 | `fieldset`, `legend` | bordered group with a title; `disabled` blocks everything inside |
 | `dialog` | layer over the screen: dialog or bottom sheet |
