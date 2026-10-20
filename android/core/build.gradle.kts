@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "io.github.getnativelayout"
-version = "0.1.0"
+version = "0.1.8"
 
 dependencies {
     implementation(kotlin("stdlib"))
