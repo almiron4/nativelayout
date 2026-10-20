@@ -148,7 +148,9 @@ class NativeBox(
     id: String?, classes: List<String>, style: NativeStyle, line: Int,
     val children: List<Native>, val virtual: Boolean = false,
     /** A <dialog>: a layer drawn over the whole screen, above the other blocks. */
-    val overlay: Boolean = false
+    val overlay: Boolean = false,
+    /** A <header>: fixed at the top of the screen, outside the scroll. */
+    val header: Boolean = false
 ) : Native(id, classes, style, line)
 
 class NativeText(
@@ -223,7 +225,7 @@ fun Native.sameAs(o: Native): Boolean {
         this is NativeCheckbox && o is NativeCheckbox -> checked == o.checked && disabled == o.disabled
         this is NativeImage && o is NativeImage -> source == o.source && description == o.description
         this is NativeItem && o is NativeItem -> marker == o.marker
-        this is NativeBox && o is NativeBox -> virtual == o.virtual && overlay == o.overlay
+        this is NativeBox && o is NativeBox -> virtual == o.virtual && overlay == o.overlay && header == o.header
         else -> true
     }
     if (!same) return false
