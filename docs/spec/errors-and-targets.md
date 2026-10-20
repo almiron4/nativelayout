@@ -18,6 +18,9 @@ Same format as the other messages, with the line of the `.nl` file.
 | Repeated id | `markup: duplicate id 'add'` |
 | Repeated key | `markup: duplicate key 'p1'` |
 | `<dialog>` not at the first level | `markup: <dialog> must be a direct child of the root tag (line 9)` |
+| `<header>` not at the first level | `markup: <header> must be a direct child of the root tag (line 4)` |
+| Two `<header>` in a screen | `markup: a screen can have only one <header> (line 12)` |
+| Icon that does not exist | `markup: icon 'arrow-leff' does not exist (line 5)`, followed by the list of names |
 | `<dialog>` in a `virtual` container | `markup: <dialog> cannot be inside a 'virtual' container (line 12)` |
 | `<legend>` outside a `<fieldset>` | `markup: <legend> can only be inside <fieldset> (line 5)` |
 | `<include>` without `src` | `markup: <include> requires a src attribute (line 5)` |
