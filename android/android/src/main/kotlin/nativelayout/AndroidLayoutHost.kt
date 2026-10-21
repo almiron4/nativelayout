@@ -22,6 +22,7 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Build
@@ -365,6 +366,10 @@ class AndroidLayoutHost(
             attachFooter(created.view)
             return
         }
+        if (a.node.style.position == Position.ABSOLUTE && parentEntry.view is AbsFrame) {
+            parentEntry.view.addAbs(created.view, a.position)
+            return
+        }
         // the <header> is the first child of the root in the tree, but it is not a view of the root
         val shift = if (a.parentKey == rootKey && (headerHolder?.childCount ?: 0) > 0) 1 else 0
         container.addView(created.view, (a.position - shift).coerceIn(0, container.childCount))
@@ -439,8 +444,8 @@ class AndroidLayoutHost(
         val parent = entry.view.parent as? ViewGroup
         val parentEntry = entryOfParent(parent)
         if (parentEntry != null && parent != null) {
-            entry.view.layoutParams = childParams(a.style, parentEntry.style)
-            applyPercents(entry.view, a.style, parent)
+            entry.view.layoutParams = paramsFor(a.style, parentEntry.style)
+            if (a.style.position != Position.ABSOLUTE) applyPercents(entry.view, a.style, parent)
         } else if (a.key == rootKey) {
             entry.view.layoutParams = rootParams(a.style)
             column?.setBackgroundColor(a.style.backgroundColor)
@@ -455,6 +460,13 @@ class AndroidLayoutHost(
                 val childEntry = (child.tag as? String)?.let { entries[it] } ?: continue
                 child.layoutParams = childParams(childEntry.style, a.style)
                 applyPercents(child, childEntry.style, container)
+            }
+        }
+        (entry.view as? AbsFrame)?.let { frame ->
+            for (i in 1 until frame.childCount) {
+                val child = frame.getChildAt(i)
+                val childEntry = (child.tag as? String)?.let { entries[it] } ?: continue
+                child.layoutParams = absParams(childEntry.style)
             }
         }
     }
@@ -488,6 +500,10 @@ class AndroidLayoutHost(
                 if (node.virtual) {
                     val vl = VirtualList(context)
                     ViewEntry(vl, null, node.style, node, vl)
+                } else if (node.hasAbsolute) {
+                    // the box has absolute children: a frame holds the flow and them
+                    val frame = AbsFrame(context)
+                    ViewEntry(frame, frame.flow, node.style, node)
                 } else {
                     val box = NLBox(context)
                     ViewEntry(box, box, node.style, node)
@@ -551,7 +567,7 @@ class AndroidLayoutHost(
         entries[node.key] = entry
 
         applyStyle(entry)
-        if (parent != null) entry.view.layoutParams = childParams(node.style, parent)
+        if (parent != null) entry.view.layoutParams = paramsFor(node.style, parent)
         bindEvents(entry)
 
         entry.list?.let { it.setStyle(node.style); it.setModel(node.nativeChildren()) }
@@ -566,6 +582,8 @@ class AndroidLayoutHost(
                     attachHeader(childEntry.view)
                 } else if (isFooter(child)) {
                     attachFooter(childEntry.view)
+                } else if (child.style.position == Position.ABSOLUTE && entry.view is AbsFrame) {
+                    entry.view.addAbs(childEntry.view)
                 } else {
                     container.addView(childEntry.view)
                     applyPercents(childEntry.view, childEntry.style, container)
@@ -753,7 +771,9 @@ class AndroidLayoutHost(
         val n = entry.node
 
         applyBackground(v, st, ripple = v is Button)
-        v.setPadding(px(st.padding.left), px(st.padding.top), px(st.padding.right), px(st.padding.bottom))
+        // with absolute children the padding belongs to the flow: they are placed from the edge of the box
+        (if (v is AbsFrame) v.flow else v)
+            .setPadding(px(st.padding.left), px(st.padding.top), px(st.padding.right), px(st.padding.bottom))
         applyAlpha(entry)
         v.minimumWidth = st.minWidth?.let { px(it) } ?: 0
         v.minimumHeight = st.minHeight?.let { px(it) } ?: 0
@@ -761,6 +781,13 @@ class AndroidLayoutHost(
         if (v is TextView) applyText(v, st, n)
 
         if (v is ImageView) {
+            if (n is NativeImage && IconSet.nameOf(n.source) == null) {
+                v.scaleType = when (st.objectFit) {
+                    ImageFit.COVER -> ImageView.ScaleType.CENTER_CROP
+                    ImageFit.FILL -> ImageView.ScaleType.FIT_XY
+                    ImageFit.CONTAIN -> ImageView.ScaleType.FIT_CENTER
+                }
+            }
             v.maxWidth = st.maxWidth?.let { px(it) } ?: Int.MAX_VALUE
             v.maxHeight = st.maxHeight?.let { px(it) } ?: Int.MAX_VALUE
         }
@@ -852,7 +879,8 @@ class AndroidLayoutHost(
         val disabled = e.states?.disabled
         val focused = e.states?.focused
         val hasStates = changesLook(pressed) || changesLook(disabled) || changesLook(focused)
-        val hasBackground = e.backgroundColor != 0 || e.gradient != null
+        val image = e.backgroundImage?.let { bitmapFor(it) }
+        val hasBackground = e.backgroundColor != 0 || e.gradient != null || image != null
         val hasBorder = e.borderWidth.value > 0f
         if (!hasBackground && !hasBorder && !ripple && !hasStates) {
             view.background = null
@@ -875,11 +903,27 @@ class AndroidLayoutHost(
         } else {
             base
         }
-        view.background = if (ripple && Build.VERSION.SDK_INT >= 21) {
-            RippleDrawable(ColorStateList.valueOf(0x33000000), content, null)
+        val shown: Drawable = if (image != null) {
+            val radii = e.corners?.let { cornerRadii(it) }
+            LayerDrawable(arrayOf(content, ImageBackground(image, e.backgroundSize, e.backgroundPosition, pxF(e.borderRadius), radii)))
         } else {
             content
         }
+        view.background = if (ripple && Build.VERSION.SDK_INT >= 21) {
+            RippleDrawable(ColorStateList.valueOf(0x33000000), shown, null)
+        } else {
+            shown
+        }
+    }
+
+    private val backgroundBitmaps = HashMap<String, Bitmap>()
+
+    /** The image of a `background-image`, found as the source of an <img> is. Kept, so a restyle does not decode it again. */
+    private fun bitmapFor(name: String): Bitmap? {
+        backgroundBitmaps[name]?.let { return it }
+        val bitmap = loadImage(name) ?: return null
+        backgroundBitmaps[name] = bitmap
+        return bitmap
     }
 
     private fun applyContainer(lin: LinearLayout, e: NativeStyle) {
@@ -971,6 +1015,43 @@ class AndroidLayoutHost(
         }
         return FrameLayout.LayoutParams(width, height).apply {
             setMargins(px(e.margin.left), px(e.margin.top), px(e.margin.right), px(e.margin.bottom))
+        }
+    }
+
+    private fun paramsFor(e: NativeStyle, parent: NativeStyle): ViewGroup.LayoutParams =
+        if (e.position == Position.ABSOLUTE) absParams(e) else childParams(e, parent)
+
+    /**
+     * Place of an absolute child inside the frame of its box: left, top, right and bottom become
+     * margins from the edge they name. With left and right (or top and bottom) and no size, it stretches.
+     */
+    private fun absParams(e: NativeStyle): AbsFrame.Lp {
+        val l = e.left?.let { px(it) }
+        val r = e.right?.let { px(it) }
+        val t = e.top?.let { px(it) }
+        val b = e.bottom?.let { px(it) }
+        val w = e.width
+        val h = e.height
+        val width = when {
+            w is Size.Dim -> px(w.length)
+            w is Size.Percent && w.value >= 100f -> ViewGroup.LayoutParams.MATCH_PARENT
+            l != null && r != null -> ViewGroup.LayoutParams.MATCH_PARENT
+            else -> ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        val height = when {
+            h is Size.Dim -> px(h.length)
+            h is Size.Percent && h.value >= 100f -> ViewGroup.LayoutParams.MATCH_PARENT
+            t != null && b != null -> ViewGroup.LayoutParams.MATCH_PARENT
+            else -> ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        return AbsFrame.Lp(width, height).apply {
+            gravity = (if (r != null && l == null) Gravity.END else Gravity.START) or
+                (if (b != null && t == null) Gravity.BOTTOM else Gravity.TOP)
+            setMargins(
+                px(e.margin.left) + (l ?: 0), px(e.margin.top) + (t ?: 0),
+                px(e.margin.right) + (r ?: 0), px(e.margin.bottom) + (b ?: 0)
+            )
+            z = e.zIndex
         }
     }
 
