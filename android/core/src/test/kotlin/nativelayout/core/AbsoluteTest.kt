@@ -44,7 +44,7 @@ class AbsoluteTest {
 
     @Test
     fun aBoxWithoutAbsoluteChildrenIsNotAFrame() {
-        val box = LayoutEngine.build("""<div><div id="box"><p>Flow</p></div></div>""").byId["box"] as NativeBox
+        val box = LayoutEngine.build("""<div><div id="box"><p>Flow</p><p>Two</p></div></div>""").byId["box"] as NativeBox
         assertFalse(box.hasAbsolute)
     }
 
@@ -107,9 +107,9 @@ class AbsoluteTest {
 
     @Test
     fun anAbsoluteChildIsCreatedByItsPositionAmongTheAbsoluteOnes() {
-        val a = LayoutEngine.build("""<div><div id="b"><p>one</p></div></div>""").root
+        val a = LayoutEngine.build("""<div><div id="b"><p>one</p><p>two</p></div></div>""").root
         val b = LayoutEngine.build(
-            """<div><div id="b"><p>one</p><p id="x" style="position: absolute; top: 0">x</p></div></div>"""
+            """<div><div id="b"><p>one</p><p>two</p><p id="x" style="position: absolute; top: 0">x</p></div></div>"""
         ).root
         // the box becomes a frame, so it is replaced as a whole
         assertTrue(LayoutDiffer.diff(a, b).any { it is Change.Replace })
