@@ -37,7 +37,7 @@ object LayoutDiffer {
 
     private fun compare(a: Native, n: Native, removed: MutableList<Change>, rest: MutableList<Change>) {
         if (a is NativeBox && n is NativeBox) {
-            if (a.virtual != n.virtual || a.overlay != n.overlay || a.header != n.header || a.footer != n.footer) {
+            if (a.virtual != n.virtual || a.overlay != n.overlay || a.header != n.header || a.footer != n.footer || a.hasAbsolute != n.hasAbsolute) {
                 rest.add(Change.Replace(n.key, n))
                 return
             }
@@ -98,7 +98,12 @@ object LayoutDiffer {
         for ((i, n) in nextChildren.withIndex()) {
             val a = oldByKey[n.key]
             when {
-                a == null -> rest.add(Change.Create(parent.key, i, n))
+                a == null -> {
+                    // an absolute child lives apart from the flow: its position counts only the absolute ones
+                    val absolute = n.style.position == Position.ABSOLUTE
+                    val before = nextChildren.subList(0, i).count { (it.style.position == Position.ABSOLUTE) == absolute }
+                    rest.add(Change.Create(parent.key, before, n))
+                }
                 a::class != n::class -> rest.add(Change.Replace(n.key, n))
                 else -> compare(a, n, removed, rest)
             }
