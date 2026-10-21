@@ -239,6 +239,7 @@ private class ScreenExpander(
     // Identity of the repetitions of a `for` (section 5.7).
     private var scopeCounter = 0
     private var markerHits = 0
+    private val autoKeyed = HashSet<Int>()
     private val scopeLog = ArrayList<Pair<String, Any?>>()
 
     private fun err(message: String, line: Int, word: String? = null, suggestion: String? = null): ExpandError {
@@ -795,7 +796,8 @@ private class ScreenExpander(
                     continue
                 }
                 val name = Rx.tagNameRegex.find(tag)?.groupValues?.get(1)?.lowercase() ?: continue
-                if (depth == 0) KEY_ATTR.find(tag)?.let { return it.groupValues[1] }
+                // a key that an inner `for` wrote by itself is not the author's key
+                if (depth == 0 && k !in autoKeyed) KEY_ATTR.find(tag)?.let { return it.groupValues[1] }
                 if (name !in VOID_NAMES && !tag.endsWith("/>")) depth++
             }
         }
@@ -833,6 +835,7 @@ private class ScreenExpander(
             rebuilt?.let {
                 it.append(line, copied, line.length)
                 out[k] = it.toString()
+                autoKeyed.add(k)
             }
         }
         return true
