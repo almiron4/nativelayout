@@ -311,7 +311,7 @@ Tapping an item changes only that item: the others keep their view.
 
 ### 12.7 Components in a list (`include`)
 
-*Designed in v0.3. Not built yet.* A product card written once and repeated, with a button and a field per product.
+*Built in the Kotlin engine.* A product card written once and repeated, with a button and a field per product.
 
 `card.nl` (from section 5.6) and `shop.nl`:
 
