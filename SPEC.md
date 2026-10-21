@@ -34,10 +34,7 @@ The specification is split by subject, in the order of a first reading. The sect
 
 ## Designed, not built yet
 
-These parts of v0.3 are in the specification and are not in the Kotlin engine yet. Each one says so at its start.
-
-- `<include>`: components (section 5.6).
-- Ids inside a `for`, the automatic key of an item, and the verbs `clicked`, `value`, `checked` and `setValue` with an item (sections 5.3, 5.7 and 8.2).
+Nothing: every part of the specification is built in the Kotlin engine.
 
 ---
 
