@@ -20,11 +20,12 @@
 | `fieldset`, `legend` | bordered group with a title (section 5.5) |
 | `dialog` | layer over the screen: dialog or sheet (section 5.4) |
 | `header` | bar fixed at the top of the screen (section 5.8) |
+| `footer` | region fixed outside the scroll, at the bottom by default (section 5.10) |
 | `include` | a component written in another `.nl` file (section 5.6) |
 
 A tag outside this list is an error.
 
-The whole screen scrolls: the root sits in one vertical scroll container. A long list scrolls the screen (for very long lists, see `virtual` in section 5.3), and a bar pinned to the bottom is not possible in v1.
+The whole screen scrolls: the root sits in one vertical scroll container. A long list scrolls the screen (for very long lists, see `virtual` in section 5.3). A bar pinned outside the scroll is a `<header>` or a `<footer>`.
 
 ### 5.2 Attributes
 
