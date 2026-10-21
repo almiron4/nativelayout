@@ -105,10 +105,12 @@ class NativeView(
      */
     suspend fun render(screen: Screen, data: Map<String, Any?> = emptyMap()): Boolean {
         if (closed) return false
-        val (prepared, expandWarnings) = inBackground {
-            val expanded = Expander.expand(screen.source, data, { name -> loader(name) }, isDark())
-            Pair(session.prepare(FilledMarkup(expanded.html, 1)), expanded.warnings)
+        val (prepared, expanded) = inBackground {
+            val ex = Expander.expand(screen.source, data, { name -> loader(name) }, isDark())
+            Pair(session.prepare(FilledMarkup(ex.html, 1)), ex)
         }
+        val expandWarnings = expanded.warnings
+        session.setScopeItems(expanded.items)
         for (w in expandWarnings) {
             if (session.warnings.none { it.message == w.message && it.line == w.line }) session.warnings.add(w)
         }
@@ -209,6 +211,24 @@ class NativeView(
     fun value(id: String): String = if (fresh) "" else session.fieldText(id) ?: ""
     fun checked(id: String): Boolean = if (fresh) false else session.fieldChecked(id) ?: false
     fun setValue(id: String, text: String) = session.setValue(id, text)
+
+    /** The item of the `for [name] in ...` that holds the element that was just tapped (section 5.7). */
+    fun clicked(name: String): Any? = if (fresh) null else session.clickedItem(name)
+
+    /** [value] of the element [id] of the item(s) given, one for each enclosing `for`, outermost first. */
+    fun value(id: String, vararg items: Any?): String =
+        if (fresh) "" else session.fieldText(id, items.toList()) ?: ""
+
+    fun checked(id: String, vararg items: Any?): Boolean =
+        if (fresh) false else session.fieldChecked(id, items.toList()) ?: false
+
+    /** Fills the element [id] of the item(s) given: `setValue("qty", p, "1")`. The last argument is the text. */
+    fun setValue(id: String, first: Any?, vararg rest: Any?) {
+        val all = listOf(first) + rest.toList()
+        val text = all.last()
+        require(text is String) { "setValue(id, item..., text): the last argument must be the text" }
+        session.setValue(id, text, all.dropLast(1))
+    }
 
     fun save(key: String, text: String) = session.save(key, text)
     fun load(key: String): String? = session.load(key)
