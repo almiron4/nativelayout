@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use nativelayout, please cite the article below."
 title: "nativelayout"
 type: software
-version: "0.1.8"
+version: "1.2.0"
 date-released: 2026-10-20
 authors:
   - family-names: "Rafael"
