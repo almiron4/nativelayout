@@ -1,6 +1,6 @@
 # nativelayout - Specification
 
-Status: draft v0.4. v0.4 adds `goRoot`, `goBack`, `canGoBack` and `back()` (section 8.6) and the `animation` property (section 4.6). It replaces the draft where the markup lived inside Kotlin code.
+Status: draft v0.5. v0.5 adds the `<footer>` and its `dock` property (section 5.10), and `position: absolute` with `top`, `right`, `bottom`, `left` and `z-index`, `background-image`, `background-size`, `background-position` and `object-fit` (section 4.7). v0.4 adds `goRoot`, `goBack`, `canGoBack` and `back()` (section 8.6) and the `animation` property (section 4.6). It replaces the draft where the markup lived inside Kotlin code.
 
 License: this specification is licensed under [CC BY-SA 4.0](LICENSE-SPEC). Copyright (c) 2026 Adilson C. Rafael. The code examples in this document are also available under the [MPL 2.0](LICENSE).
 
@@ -19,7 +19,7 @@ The specification is split by subject, in the order of a first reading. The sect
 | 5.3 | Lists: `key` and `virtual` | [lists.md](docs/spec/lists.md) |
 | 5.4, 5.5 | Layers (`dialog`) and groups (`fieldset`, `legend`) | [layers-and-groups.md](docs/spec/layers-and-groups.md) |
 | 5.6, 5.7 | Components (`include`) and identity inside a `for` | [components.md](docs/spec/components.md) |
-| 5.8, 5.9 | Header (`header`) and built-in icons (`icon:name`) | [header-and-icons.md](docs/spec/header-and-icons.md) |
+| 5.8, 5.9, 5.10 | Header (`header`), built-in icons (`icon:name`) and footer (`footer`) | [header-and-icons.md](docs/spec/header-and-icons.md) |
 | 6, 7 | Values, control lines, conditions, data | [values-and-data.md](docs/spec/values-and-data.md) |
 | 8, 9 | The program side and `render` | [program-side.md](docs/spec/program-side.md) |
 | 10, 11 | Errors and targets | [errors-and-targets.md](docs/spec/errors-and-targets.md) |
