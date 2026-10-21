@@ -29,10 +29,10 @@ object LayoutEngine {
 
 private val SUPPORTED_TAGS = setOf(
     "div", "span", "p", "h1", "h2", "h3", "button", "input", "textarea", "img", "ul", "li",
-    "fieldset", "legend", "dialog", "header"
+    "fieldset", "legend", "dialog", "header", "footer"
 )
 private const val TAGS_SUGGESTION =
-    "supported tags: div, span, p, h1, h2, h3, button, input, textarea, img, ul, li, fieldset, legend, dialog, header"
+    "supported tags: div, span, p, h1, h2, h3, button, input, textarea, img, ul, li, fieldset, legend, dialog, header, footer"
 private val FIELDSET_BORDER: Int = 0xFFBDBDBD.toInt()
 private val DIALOG_BACKDROP: Int = 0x80000000.toInt()
 private val BORDER_STYLES = setOf("solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset")
@@ -124,6 +124,7 @@ private class LayoutBuilder(
         )
         "legend" -> b.copy(bold = true, margin = Sides(bottom = Length.rem(0.5f)))
         "dialog" -> b.copy(backgroundColor = DIALOG_BACKDROP, justify = Justify.CENTER, alignItems = Align.CENTER)
+        "footer" -> b.copy(direction = Direction.ROW, justify = Justify.CENTER, alignItems = Align.CENTER)
         "ul" -> b.copy(margin = vertical(1f), padding = Sides(left = Length.rem(1.5f)))
         "button" -> b.copy(
             padding = Sides(Length.rem(0.5f), Length.rem(1f), Length.rem(0.5f), Length.rem(1f)),
@@ -500,6 +501,14 @@ private class LayoutBuilder(
                     e
                 }
             }
+            "dock" -> when (vl) {
+                "bottom" -> e.copy(dock = Dock.BOTTOM)
+                "top" -> e.copy(dock = Dock.TOP)
+                "left" -> e.copy(dock = Dock.LEFT)
+                "right" -> e.copy(dock = Dock.RIGHT)
+                "center" -> e.copy(dock = Dock.CENTER)
+                else -> invalid()
+            }
             "align-items" -> when (vl) {
                 "flex-start", "start" -> e.copy(alignItems = Align.START)
                 "center" -> e.copy(alignItems = Align.CENTER)
@@ -729,6 +738,12 @@ private class LayoutBuilder(
                         "put the <header> at the first level of the screen; it stays fixed at the top"
                     )
                 }
+                if (tag == "footer" && myDepth != 1) {
+                    throw err(
+                        "<footer> must be a direct child of the root tag", el.line, "<footer",
+                        "put the <footer> at the first level of the screen; it stays fixed outside the scroll"
+                    )
+                }
                 val savedGroup = groupDisabled
                 if (tag == "fieldset" && "disabled" in el.attributes) groupDisabled = true
                 val found = try {
@@ -739,13 +754,18 @@ private class LayoutBuilder(
                 // the <header> is fixed at the top and comes first; the dialogs of the screen are layers:
                 // they come last, in the order they were written
                 val children =
-                    if (myDepth == 0 && found.any { it is NativeBox && (it.header || it.overlay) }) {
+                    if (myDepth == 0 && found.any { it is NativeBox && (it.header || it.footer || it.overlay) }) {
                         val headers = found.filter { it is NativeBox && it.header }
                         if (headers.size > 1) {
                             throw err("a screen can have only one <header>", headers[1].line, "<header")
                         }
+                        val footers = found.filter { it is NativeBox && it.footer }
+                        if (footers.size > 1) {
+                            throw err("a screen can have only one <footer>", footers[1].line, "<footer")
+                        }
                         headers +
-                            found.filter { !(it is NativeBox && (it.header || it.overlay)) } +
+                            found.filter { !(it is NativeBox && (it.header || it.footer || it.overlay)) } +
+                            footers +
                             found.filter { it is NativeBox && it.overlay }
                     } else found
                 val virtual = "virtual" in el.attributes
@@ -757,13 +777,13 @@ private class LayoutBuilder(
                     }
                 }
                 val only = children.singleOrNull()
-                val isGroup = tag == "dialog" || tag == "fieldset" || tag == "header"
+                val isGroup = tag == "dialog" || tag == "fieldset" || tag == "header" || tag == "footer"
                 if (!virtual && !isGroup && only is NativeText) {
                     NativeText(id, classes, style, el.line, only.spans)
                 } else {
                     NativeBox(
                         id, classes, style, el.line, children, virtual,
-                        overlay = tag == "dialog", header = tag == "header"
+                        overlay = tag == "dialog", header = tag == "header", footer = tag == "footer"
                     )
                 }
             }
