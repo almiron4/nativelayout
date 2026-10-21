@@ -82,6 +82,13 @@ class AndroidLayoutHost(
     private var headerHolder: FrameLayout? = null
     private var column: LinearLayout? = null
 
+    /**
+     * The <footer>: with dock bottom (the default) it sits under the scroll and takes its space;
+     * with the other docks it floats over the screen, in the area.
+     */
+    private var footerHolder: FrameLayout? = null
+    private val pendingFooters = ArrayList<View>()
+
     private val queue = ArrayDeque<LayoutEvent>()
     private var pending: Continuation<LayoutEvent?>? = null
     private var closed = false
@@ -180,6 +187,8 @@ class AndroidLayoutHost(
         pendingHeader = null
         headerHolder = null
         column = null
+        footerHolder = null
+        pendingFooters.clear()
         area?.removeAllViews()
     }
 
@@ -204,6 +213,11 @@ class AndroidLayoutHost(
             ))
             addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         }
+        val bottom = FrameLayout(context)
+        col.addView(bottom, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ))
+        footerHolder = bottom
         headerHolder = holder
         column = col
         pendingHeader?.let { holder.addView(it, headerParams(it)) }
@@ -212,9 +226,11 @@ class AndroidLayoutHost(
         target.addView(col, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
         ))
+        layersReady = true
+        for (footer in pendingFooters) attachFooter(footer)
+        pendingFooters.clear()
         for (layer in pendingLayers) target.addView(layer, layerParams())
         pendingLayers.clear()
-        layersReady = true
         rootKey = node.key
         animateIn(col, node.style.animation ?: DefaultAnimations.SCREEN, false)
     }
@@ -233,6 +249,58 @@ class AndroidLayoutHost(
     private fun attachHeader(view: View) {
         val holder = headerHolder
         if (layersReady && holder != null) holder.addView(view, headerParams(view)) else pendingHeader = view
+    }
+
+    private fun isFooter(n: Native): Boolean = n is NativeBox && n.footer
+
+    private fun alignGravity(a: Align?, vertical: Boolean): Int = when (a) {
+        Align.START -> if (vertical) Gravity.TOP else Gravity.START
+        Align.CENTER -> if (vertical) Gravity.CENTER_VERTICAL else Gravity.CENTER_HORIZONTAL
+        Align.END -> if (vertical) Gravity.BOTTOM else Gravity.END
+        else -> Gravity.NO_GRAVITY
+    }
+
+    /** Size, margin and place of a <footer>, from its style and its `dock`. */
+    private fun footerParams(e: NativeStyle): FrameLayout.LayoutParams {
+        val dock = e.dock ?: Dock.BOTTOM
+        val wide = dock == Dock.BOTTOM || dock == Dock.TOP
+        val w = e.width
+        val h = e.height
+        val width = when {
+            w is Size.Dim -> px(w.length)
+            w is Size.Percent && w.value >= 100f -> ViewGroup.LayoutParams.MATCH_PARENT
+            wide -> ViewGroup.LayoutParams.MATCH_PARENT
+            else -> ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        val height = when {
+            h is Size.Dim -> px(h.length)
+            h is Size.Percent && h.value >= 100f -> ViewGroup.LayoutParams.MATCH_PARENT
+            else -> ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        val gravity = when (dock) {
+            Dock.BOTTOM -> Gravity.BOTTOM or alignGravity(e.alignSelf, false)
+            Dock.TOP -> Gravity.TOP or alignGravity(e.alignSelf, false)
+            Dock.LEFT -> Gravity.START or alignGravity(e.alignSelf, true).let { if (it == Gravity.NO_GRAVITY) Gravity.CENTER_VERTICAL else it }
+            Dock.RIGHT -> Gravity.END or alignGravity(e.alignSelf, true).let { if (it == Gravity.NO_GRAVITY) Gravity.CENTER_VERTICAL else it }
+            Dock.CENTER -> Gravity.CENTER
+        }
+        return FrameLayout.LayoutParams(width, height, gravity).apply {
+            setMargins(px(e.margin.left), px(e.margin.top), px(e.margin.right), px(e.margin.bottom))
+        }
+    }
+
+    /** The <footer> goes under the scroll (dock bottom) or over the screen (any other dock). */
+    private fun attachFooter(view: View) {
+        val style = (view.tag as? String)?.let { entries[it]?.style } ?: NativeStyle()
+        val dock = style.dock ?: Dock.BOTTOM
+        val params = footerParams(style)
+        val bottom = footerHolder
+        val target = area
+        if (!layersReady || bottom == null || target == null) {
+            pendingFooters.add(view)
+            return
+        }
+        if (dock == Dock.BOTTOM) bottom.addView(view, params) else target.addView(view, params)
     }
 
     private fun layerParams() = FrameLayout.LayoutParams(
@@ -293,6 +361,10 @@ class AndroidLayoutHost(
             attachHeader(created.view)
             return
         }
+        if (isFooter(a.node)) {
+            attachFooter(created.view)
+            return
+        }
         // the <header> is the first child of the root in the tree, but it is not a view of the root
         val shift = if (a.parentKey == rootKey && (headerHolder?.childCount ?: 0) > 0) 1 else 0
         container.addView(created.view, (a.position - shift).coerceIn(0, container.childCount))
@@ -320,12 +392,14 @@ class AndroidLayoutHost(
         val parentEntry = entryOfParent(parent)
         val oldWasLayer = isLayer(old.node)
         val oldWasHeader = isHeader(old.node)
+        val oldWasFooter = isFooter(old.node)
         discard(old.view)
         parent.removeView(old.view)
         when {
             isLayer(a.node) -> attachLayer(createView(a.node, null).view)
             isHeader(a.node) -> attachHeader(createView(a.node, rootKey?.let { entries[it]?.style }).view)
-            oldWasLayer || oldWasHeader -> {
+            isFooter(a.node) -> attachFooter(createView(a.node, rootKey?.let { entries[it]?.style }).view)
+            oldWasLayer || oldWasHeader || oldWasFooter -> {
                 // a layer that stops being one goes back to the end of the root, a header to the start
                 val rootEntry = rootKey?.let { entries[it] } ?: return
                 val container = rootEntry.container ?: return
@@ -350,6 +424,11 @@ class AndroidLayoutHost(
         val entry = entries[a.key] ?: return
         entry.style = a.style
         applyStyle(entry)
+        if (isFooter(entry.node)) {
+            // the dock or the size may have changed: the footer goes back to its place
+            (entry.view.parent as? ViewGroup)?.removeView(entry.view)
+            attachFooter(entry.view)
+        }
         entry.list?.setStyle(a.style)
         // the icons are painted with the text color
         (entry.view as? ImageView)?.let { iv ->
@@ -485,6 +564,8 @@ class AndroidLayoutHost(
                     attachLayer(childEntry.view)
                 } else if (isHeader(child)) {
                     attachHeader(childEntry.view)
+                } else if (isFooter(child)) {
+                    attachFooter(childEntry.view)
                 } else {
                     container.addView(childEntry.view)
                     applyPercents(childEntry.view, childEntry.style, container)
