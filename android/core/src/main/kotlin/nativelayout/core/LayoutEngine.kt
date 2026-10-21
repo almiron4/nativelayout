@@ -110,6 +110,35 @@ private class LayoutBuilder(
         textTransform = p.textTransform, fontFamily = p.fontFamily
     )
 
+    /** `position: absolute` only makes sense inside a box of the flow: elsewhere it is ignored with a warning. */
+    private fun fixPosition(el: HtmlElement, s: NativeStyle, level: Int): NativeStyle {
+        if (s.position != Position.ABSOLUTE) return s
+        val why = when {
+            el.tag == "header" || el.tag == "footer" || el.tag == "dialog" -> "<${el.tag}> has its own place"
+            el.tag == "li" -> "<li> stays in its list"
+            level == 0 -> "the root of the screen has no parent"
+            else -> null
+        }
+        if (why == null) return s
+        warn("CSS: 'position: absolute' is ignored: $why", el.line)
+        return s.copy(position = Position.STATIC)
+    }
+
+    /** `url(name)`, with or without quotes: the name of an image. Null when the text is not that. */
+    private fun imageNameOf(v: String): String? {
+        val t = v.trim()
+        if (!t.lowercase().startsWith("url(") || !t.endsWith(")")) return null
+        val name = t.substring(4, t.length - 1).trim().trim('"', '\'').trim()
+        return name.takeIf { it.isNotEmpty() }
+    }
+
+    /** A length for top, right, bottom or left. `auto` gives a null length. */
+    private fun offsetOf(v: String): Pair<Length?, Unit>? {
+        if (v.trim().lowercase() == "auto") return Pair(null, Unit)
+        val len = CssValues.length(v) ?: return null
+        return Pair(len, Unit)
+    }
+
     private fun vertical(rem: Float) = Sides(top = Length.rem(rem), bottom = Length.rem(rem))
 
     private fun tagDefaults(el: HtmlElement, b: NativeStyle): NativeStyle = when (el.tag) {
@@ -294,10 +323,18 @@ private class LayoutBuilder(
             "color" -> CssValues.color(v)?.let { e.copy(textColor = it) } ?: invalid()
             "background", "background-color", "background-image" -> {
                 val isGradient = vl.startsWith("linear-gradient(") && vl.endsWith(")")
+                val image = imageNameOf(v)
                 when {
-                    isGradient -> gradientOf(v)?.let { e.copy(gradient = it) } ?: invalid()
-                    d.name == "background-image" -> if (vl == "none") e.copy(gradient = null) else invalid()
-                    else -> CssValues.color(v)?.let { e.copy(backgroundColor = it, gradient = null) } ?: invalid()
+                    isGradient -> gradientOf(v)?.let { e.copy(gradient = it, backgroundImage = null) } ?: invalid()
+                    image != null -> e.copy(backgroundImage = image)
+                    d.name == "background-image" ->
+                        if (vl == "none") e.copy(gradient = null, backgroundImage = null) else invalid()
+                    else -> CssValues.color(v)?.let {
+                        e.copy(
+                            backgroundColor = it, gradient = null,
+                            backgroundImage = if (d.name == "background") null else e.backgroundImage
+                        )
+                    } ?: invalid()
                 }
             }
             "font-size" -> len()?.takeIf { it.value > 0f }?.let { e.copy(fontSize = it) } ?: invalid()
@@ -501,6 +538,52 @@ private class LayoutBuilder(
                     e
                 }
             }
+            "position" -> when (vl) {
+                "static", "relative" -> e.copy(position = Position.STATIC)
+                "absolute" -> e.copy(position = Position.ABSOLUTE)
+                else -> {
+                    warn("CSS: 'position: $vl' is not supported in v1 (use static, relative or absolute)", d.line)
+                    e
+                }
+            }
+            "top" -> offsetOf(v)?.let { e.copy(top = it.first) } ?: invalid()
+            "right" -> offsetOf(v)?.let { e.copy(right = it.first) } ?: invalid()
+            "bottom" -> offsetOf(v)?.let { e.copy(bottom = it.first) } ?: invalid()
+            "left" -> offsetOf(v)?.let { e.copy(left = it.first) } ?: invalid()
+            "z-index" -> when {
+                vl == "auto" -> e.copy(zIndex = 0)
+                vl.toIntOrNull() != null -> e.copy(zIndex = vl.toInt().coerceIn(-1000, 1000))
+                else -> invalid()
+            }
+            "background-size" -> when (vl) {
+                "cover" -> e.copy(backgroundSize = ImageFit.COVER)
+                "contain" -> e.copy(backgroundSize = ImageFit.CONTAIN)
+                "100% 100%", "fill" -> e.copy(backgroundSize = ImageFit.FILL)
+                else -> {
+                    warn("CSS: 'background-size: $vl' is not supported in v1 (use cover, contain or 100% 100%)", d.line)
+                    e
+                }
+            }
+            "background-position" -> when (vl) {
+                "center", "center center" -> e.copy(backgroundPosition = ImagePos.CENTER)
+                "top", "top center", "center top" -> e.copy(backgroundPosition = ImagePos.TOP)
+                "bottom", "bottom center", "center bottom" -> e.copy(backgroundPosition = ImagePos.BOTTOM)
+                "left", "left center", "center left" -> e.copy(backgroundPosition = ImagePos.LEFT)
+                "right", "right center", "center right" -> e.copy(backgroundPosition = ImagePos.RIGHT)
+                else -> {
+                    warn("CSS: 'background-position: $vl' is not supported in v1 (use center, top, bottom, left or right)", d.line)
+                    e
+                }
+            }
+            "object-fit" -> when (vl) {
+                "cover" -> e.copy(objectFit = ImageFit.COVER)
+                "contain", "scale-down" -> e.copy(objectFit = ImageFit.CONTAIN)
+                "fill" -> e.copy(objectFit = ImageFit.FILL)
+                else -> {
+                    warn("CSS: 'object-fit: $vl' is not supported in v1 (use cover, contain or fill)", d.line)
+                    e
+                }
+            }
             "dock" -> when (vl) {
                 "bottom" -> e.copy(dock = Dock.BOTTOM)
                 "top" -> e.copy(dock = Dock.TOP)
@@ -690,7 +773,7 @@ private class LayoutBuilder(
         }
         val myDepth = depth
         val myParent = parentTag
-        val style = computeStyle(el, parentStyle)
+        val style = fixPosition(el, computeStyle(el, parentStyle), myDepth)
         val id = registerId(el)
         val classes = el.classes
         val disabled = "disabled" in el.attributes || groupDisabled
@@ -774,16 +857,20 @@ private class LayoutBuilder(
                         if (c is NativeBox && c.overlay) {
                             throw err("<dialog> cannot be inside a 'virtual' container", c.line, "<dialog")
                         }
+                        if (c.style.position == Position.ABSOLUTE) {
+                            throw err("'position: absolute' cannot be used inside a 'virtual' container", c.line)
+                        }
                     }
                 }
                 val only = children.singleOrNull()
                 val isGroup = tag == "dialog" || tag == "fieldset" || tag == "header" || tag == "footer"
-                if (!virtual && !isGroup && only is NativeText) {
+                if (!virtual && !isGroup && only is NativeText && only.style.position != Position.ABSOLUTE) {
                     NativeText(id, classes, style, el.line, only.spans)
                 } else {
                     NativeBox(
                         id, classes, style, el.line, children, virtual,
-                        overlay = tag == "dialog", header = tag == "header", footer = tag == "footer"
+                        overlay = tag == "dialog", header = tag == "header", footer = tag == "footer",
+                        hasAbsolute = !virtual && children.any { it.style.position == Position.ABSOLUTE }
                     )
                 }
             }
@@ -822,7 +909,7 @@ private class LayoutBuilder(
                     if (f.tag != "li") {
                         throw err("<ul> can only contain <li>, found <${f.tag}>", f.line, "<${f.tag}")
                     }
-                    val liStyle = computeStyle(f, style)
+                    val liStyle = fixPosition(f, computeStyle(f, style), 2)
                     val liId = registerId(f)
                     val item = NativeItem(
                         liId, f.classes, liStyle, f.line, "\u2022", convertChildren(f.children, liStyle, "li")
