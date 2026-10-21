@@ -155,6 +155,10 @@ sealed class Native(
     /** Value of the optional key="..." attribute: a stable identity among siblings. */
     var keyHint: String? = null
         internal set
+
+    /** Where the element sits among the repetitions of a `for` (written by the Expander), or null. */
+    var scope: String? = null
+        internal set
 }
 
 class NativeBox(
