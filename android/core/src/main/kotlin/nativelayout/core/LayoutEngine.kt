@@ -769,6 +769,7 @@ private class LayoutBuilder(
             }
         }
         node.keyHint = keyOf(el)
+        node.scope = el.attributes["scope"]?.trim()?.takeIf { it.isNotEmpty() }
         if (id != null) ids[id] = node
         return node
     }
@@ -807,6 +808,7 @@ private class LayoutBuilder(
                         liId, f.classes, liStyle, f.line, "\u2022", convertChildren(f.children, liStyle, "li")
                     )
                     item.keyHint = keyOf(f)
+                    item.scope = f.attributes["scope"]?.trim()?.takeIf { it.isNotEmpty() }
                     if (liId != null) ids[liId] = item
                     items.add(item)
                 }
