@@ -29,6 +29,9 @@ sealed class Size {
 enum class Direction { COLUMN, ROW }
 enum class Justify { START, CENTER, END, BETWEEN, AROUND, EVENLY }
 enum class Align { START, CENTER, END, STRETCH }
+
+/** Where a <footer> sits: BOTTOM (the default) reserves its space, the others float over the screen. */
+enum class Dock { BOTTOM, TOP, LEFT, RIGHT, CENTER }
 enum class TextAlign { START, CENTER, END }
 enum class FieldType { TEXT, PASSWORD, NUMBER, AREA }
 
@@ -125,6 +128,7 @@ data class NativeStyle(
     val maxHeight: Length? = null,
     val overflowHidden: Boolean = false,
     val alignSelf: Align? = null,
+    val dock: Dock? = null,
     val wrap: Boolean = false,
     val elevation: Length = Length.ZERO,
     val gradient: Gradient? = null,
@@ -167,7 +171,9 @@ class NativeBox(
     /** A <dialog>: a layer drawn over the whole screen, above the other blocks. */
     val overlay: Boolean = false,
     /** A <header>: fixed at the top of the screen, outside the scroll. */
-    val header: Boolean = false
+    val header: Boolean = false,
+    /** A <footer>: fixed outside the scroll, placed by the `dock` property (bottom by default). */
+    val footer: Boolean = false
 ) : Native(id, classes, style, line)
 
 class NativeText(
@@ -242,7 +248,7 @@ fun Native.sameAs(o: Native): Boolean {
         this is NativeCheckbox && o is NativeCheckbox -> checked == o.checked && disabled == o.disabled
         this is NativeImage && o is NativeImage -> source == o.source && description == o.description
         this is NativeItem && o is NativeItem -> marker == o.marker
-        this is NativeBox && o is NativeBox -> virtual == o.virtual && overlay == o.overlay && header == o.header
+        this is NativeBox && o is NativeBox -> virtual == o.virtual && overlay == o.overlay && header == o.header && footer == o.footer
         else -> true
     }
     if (!same) return false
