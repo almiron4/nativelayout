@@ -32,6 +32,15 @@ enum class Align { START, CENTER, END, STRETCH }
 
 /** Where a <footer> sits: BOTTOM (the default) reserves its space, the others float over the screen. */
 enum class Dock { BOTTOM, TOP, LEFT, RIGHT, CENTER }
+
+/** `position`: STATIC stays in the flow of its parent; ABSOLUTE leaves the flow and is placed by top, right, bottom and left. */
+enum class Position { STATIC, ABSOLUTE }
+
+/** How an image fills its box: `cover` fills and crops, `contain` fits whole, `fill` stretches. */
+enum class ImageFit { COVER, CONTAIN, FILL }
+
+/** Which part of a `cover` or `contain` image stays in view or where it sits. */
+enum class ImagePos { CENTER, TOP, BOTTOM, LEFT, RIGHT }
 enum class TextAlign { START, CENTER, END }
 enum class FieldType { TEXT, PASSWORD, NUMBER, AREA }
 
@@ -129,6 +138,17 @@ data class NativeStyle(
     val overflowHidden: Boolean = false,
     val alignSelf: Align? = null,
     val dock: Dock? = null,
+    val position: Position = Position.STATIC,
+    val top: Length? = null,
+    val right: Length? = null,
+    val bottom: Length? = null,
+    val left: Length? = null,
+    val zIndex: Int = 0,
+    /** Name of a background image, resolved by the host like the source of an <img>. */
+    val backgroundImage: String? = null,
+    val backgroundSize: ImageFit = ImageFit.COVER,
+    val backgroundPosition: ImagePos = ImagePos.CENTER,
+    val objectFit: ImageFit = ImageFit.CONTAIN,
     val wrap: Boolean = false,
     val elevation: Length = Length.ZERO,
     val gradient: Gradient? = null,
@@ -173,7 +193,9 @@ class NativeBox(
     /** A <header>: fixed at the top of the screen, outside the scroll. */
     val header: Boolean = false,
     /** A <footer>: fixed outside the scroll, placed by the `dock` property (bottom by default). */
-    val footer: Boolean = false
+    val footer: Boolean = false,
+    /** True when a child is `position: absolute`: the host gives the box a frame for them. */
+    val hasAbsolute: Boolean = false
 ) : Native(id, classes, style, line)
 
 class NativeText(
@@ -248,7 +270,7 @@ fun Native.sameAs(o: Native): Boolean {
         this is NativeCheckbox && o is NativeCheckbox -> checked == o.checked && disabled == o.disabled
         this is NativeImage && o is NativeImage -> source == o.source && description == o.description
         this is NativeItem && o is NativeItem -> marker == o.marker
-        this is NativeBox && o is NativeBox -> virtual == o.virtual && overlay == o.overlay && header == o.header && footer == o.footer
+        this is NativeBox && o is NativeBox -> virtual == o.virtual && overlay == o.overlay && header == o.header && footer == o.footer && hasAbsolute == o.hasAbsolute
         else -> true
     }
     if (!same) return false
