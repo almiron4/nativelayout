@@ -162,7 +162,7 @@ class CssFeaturesTest {
         assertEquals(Length.px(2f), s.borderWidth)
         assertEquals(Justify.CENTER, s.justify)
         assertEquals(Length.rem(1f), s.gap)
-        assertTrue(warnsOf("position: absolute").any { "not supported" in it })
+        assertTrue(warnsOf("position: fixed").any { "not supported" in it })
     }
 
     // ---------- :pressed, :disabled, :focus ----------
