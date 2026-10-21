@@ -1,4 +1,4 @@
-"""Diff entre duas arvores nativas (port de LayoutDiffer.kt)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
