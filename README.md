@@ -65,8 +65,8 @@ The <code>.nl</code> file is the same everywhere. Each language only needs an Ex
 |---|---|---|---|
 | Kotlin | Android (native views) | implemented | [`android/`](android/) |
 | Java | Android (native views) | planned | - |
-| Python | Kivy | planned | - |
-| Python | Tkinter | planned | - |
+| Python | Kivy | in progress | [`python/`](python/) |
+| Python | Tkinter | in progress | [`python/`](python/) |
 | Swift | iOS (UIKit) | planned | - |
 | JavaScript / TypeScript | React Native | planned | - |
 | Dart | Flutter | planned | - |
@@ -131,8 +131,8 @@ Then add the dependency:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v1.0.0")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v1.0.0")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v1.2.0")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v1.2.0")
 }
 ```
 
