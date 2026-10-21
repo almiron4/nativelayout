@@ -50,6 +50,8 @@ To cite this project, use the "Cite this repository" button on GitHub (see <a hr
 - **Conditions and repetition**, so it is more than a static canvas.
 - **Efficient updates.** Each `render` is diffed against the previous screen and only the changes are applied. Text typed in a field is kept.
 - **Navigation and animation.** `go` and `goBack` move between screens, the system back button reaches the program, and screens and dialogs fade in by default.
+- **Components.** `<include src="card.nl" name="{p.name}">` reuses a `.nl` file with parameters, in a screen or in each item of a list.
+- **Identity inside lists.** The same `id` repeats in every item; `clicked("p")` gives the tapped item and `value("qty", p)` reads the field of one item. Each item is found by its key, so what the user typed follows the item.
 - **Fixed header and built-in icons.** `<header>` stays at the top while the screen scrolls, and `<img src="icon:arrow-left">` draws a built-in icon in the text color, with no image files.
 - **Clear errors** with the line of the `.nl` file.
 
@@ -129,8 +131,8 @@ Then add the dependency:
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v0.1.10")
-    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v0.1.10")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-android:v1.0.0")
+    implementation("com.github.getnativelayout.nativelayout:nativelayout-core:v1.0.0")
 }
 ```
 
@@ -161,9 +163,13 @@ An app is a set of screen functions. Each one holds its state, reads the taps an
 | `render(screen, data)` | base layer: shows the screen with the data, waits for a tap, returns `true`; `false` when the window closes |
 | `click(target)` | `true` if the `id` (or `".class"`) was tapped |
 | `clickIndex()` | position, from 0, of the tapped element of the class |
+| `clicked(name)` | the item of the `for name in ...` that holds the tapped element |
 | `value(id)` | text of a field, `""` if the id does not exist |
+| `value(id, item...)` | text of the field `id` of an item (one item for each enclosing `for`) |
 | `checked(id)` | state of a checkbox, `false` if it does not exist |
+| `checked(id, item...)` | state of the checkbox `id` of an item |
 | `setValue(id, text)` | fills or clears a field (`"1"` / `"0"` for a checkbox) |
+| `setValue(id, item..., text)` | fills the field `id` of an item |
 | `save(key, text)` | stores text on the device |
 | `load(key)` | reads stored text |
 | `exists(key)` | `true` if the key is stored |
@@ -196,6 +202,7 @@ A screen is one <code>.nl</code> file: zero or more linked stylesheets, an optio
 | `img` | image (`data:` URI, a built-in icon `icon:<name>`, or a name resolved by the host) |
 | `header` | bar fixed at the top of the screen, outside the scroll; direct child of the root, one per screen |
 | `ul`, `li` | list with bullets |
+| `include` | another `.nl` file in this place, with parameters (alone on its line, no closing tag) |
 | `fieldset`, `legend` | bordered group with a title; `disabled` blocks everything inside |
 | `dialog` | layer over the screen: dialog or bottom sheet |
 
