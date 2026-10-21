@@ -64,7 +64,7 @@ class IncludeTest {
 
     @Test
     fun nestedForsGiveNestedPaths() {
-        val src = screen("for a in as:\n    for b in bs:\n        <button id=\"x\">{b}</button>\n    end\nend")
+        val src = screen("for a in as:\n    for b in bs:\n        <button id=\"x\">{b.id}</button>\n    end\nend")
         val r = expand(src, mapOf("as" to listOf(mapOf("id" to 1)), "bs" to listOf(mapOf("id" to 2))))
         assertTrue(r.html, r.html.contains("id=\"x~a:1/b:2\""))
         assertTrue(r.items.containsKey("a:1"))
@@ -77,7 +77,7 @@ class IncludeTest {
             expand(screen("    <include src=\"card.nl\">"))
             fail()
         } catch (e: ExpandError) {
-            assertTrue(e.message, e.message!!.contains("card.nl"))
+            assertTrue(e.message, e.message.contains("card.nl"))
             assertEquals(4, e.line)
         }
     }
@@ -89,7 +89,7 @@ class IncludeTest {
             Expander.expand(loop, emptyMap(), { if (it == "loop.nl") loop else null })
             fail()
         } catch (e: ExpandError) {
-            assertTrue(e.message, e.message!!.contains("includes itself"))
+            assertTrue(e.message, e.message.contains("includes itself"))
         }
     }
 
