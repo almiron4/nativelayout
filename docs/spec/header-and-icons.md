@@ -36,6 +36,34 @@ An `<img>` whose `src` starts with `icon:` draws a built-in icon, so no image fi
 
 Available icons (30): `arrow-left`, `arrow-right`, `arrow-up`, `arrow-down`, `chevron-left`, `chevron-right`, `chevron-up`, `chevron-down`, `close`, `check`, `plus`, `minus`, `menu`, `search`, `more-vertical`, `more-horizontal`, `home`, `user`, `trash`, `edit`, `star`, `lock`, `eye`, `mail`, `info`, `alert`, `calendar`, `logout`, `bookmark`, `clock`.
 
+### 5.10 Footer: `<footer>`
+
+A `<footer>` is a region fixed outside the scroll. By default it sits at the bottom of the screen, as the bar of an app (tabs, actions, a message field). Its `dock` and its style place it anywhere.
+
+```html
+<body>
+    <header>...</header>
+
+    ...
+
+    <footer>
+        <button id="tab-list" class="tab on">List</button>
+        <button id="tab-summary" class="tab">Summary</button>
+    </footer>
+</body>
+```
+
+- It must be a direct child of the root tag, and a screen can have only one. Anywhere else it is an error: "`<footer>` must be a direct child of the root tag".
+- In the neutral tree it comes after the body and before the dialogs, wherever it is written, and it is never collapsed into a text node.
+- Default style: `flex-direction: row`, `justify-content: center`, `align-items: center`, no background. All of section 4 applies, so the bar is customised with CSS.
+- `dock` says where it goes: `bottom` (default), `top`, `left`, `right` or `center`.
+  - `bottom` takes its space: the scroll ends where the footer starts, and nothing is hidden behind it.
+  - `top`, `left`, `right` and `center` float over the screen, at that edge or in the middle, and take no space. Use `margin` to move them away from the edge.
+- `width`, `height`, `margin` and `border-radius` give a bar that is full width, narrow, or a floating pill. For `top` and `bottom`, `align-self` places a bar that is not full width; for `left` and `right` it places it up, middle or down.
+- The active tab is marked with `if`, as with any other state of a screen.
+- To repeat the same bar in several screens, write it once as a component (section 5.6) and include it inside the `<footer>`.
+- This version does not hide the footer when the keyboard opens, and does not add space for the system navigation bar.
+
 ---
 
 [Index](../../SPEC.md) | Previous: [Components and identity](components.md) | Next: [Values, control and data](values-and-data.md)
