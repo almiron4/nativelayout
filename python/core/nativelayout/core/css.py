@@ -1,4 +1,4 @@
-"""Parser de declaracoes CSS e valores (port de Css.kt)."""
+
 from __future__ import annotations
 
 import math
