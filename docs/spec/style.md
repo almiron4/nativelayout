@@ -35,7 +35,7 @@ A variable that is not declared in `:root` is an error.
 
 | Area | Properties |
 |---|---|
-| Layout | `display` (`flex` or `block`), `flex-direction`, `flex`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `gap`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `overflow`, `opacity` |
+| Layout | `display` (`flex` or `block`), `flex-direction`, `flex`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `gap`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `overflow`, `opacity`, `dock` (only on `<footer>`: `bottom`, `top`, `left`, `right`, `center`) |
 | Box | `padding`, `margin` (and `-top`, `-right`, `-bottom`, `-left` of each), `border` (and `border-width`, `border-color`, `border-style`), `border-radius` (one to four values) and `border-top-left-radius`, `border-top-right-radius`, `border-bottom-right-radius`, `border-bottom-left-radius`, `box-shadow` |
 | Background | `color`, `background` (and `background-color`, `background-image`) with a color or a `linear-gradient` |
 | Text | `font-size`, `font-weight`, `font-style`, `font-family`, `text-align`, `text-decoration`, `text-transform`, `line-height`, `letter-spacing` |
