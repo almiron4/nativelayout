@@ -8,7 +8,7 @@
 
 ### 5.6 Components: `<include>`
 
-*Designed in v0.3. Not built yet.*
+*Built in the Kotlin engine.*
 
 An `<include>` puts another `.nl` file where the tag is written, so the same block can be shared by several screens or repeated in a list.
 
@@ -51,7 +51,7 @@ end
 
 ### 5.7 Identity inside a `for`
 
-*Designed in v0.3. Not built yet.*
+*Built in the Kotlin engine.*
 
 What is inside a `for`, or inside an `<include>` that is in a `for`, is repeated. The engine identifies each repetition by itself, so the program works with the items and never with positions.
 
