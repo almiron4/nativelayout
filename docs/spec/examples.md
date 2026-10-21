@@ -347,6 +347,221 @@ fun NativeView.ShopScreen(): Page {
 }
 ```
 
+### 12.8 Footer, absolute position and images
+
+*Built in the Kotlin engine.* A screen with a bottom bar, a badge placed over an icon, and a card with a cover image.
+
+```html
+<nativelayout>
+<style>
+    .cover { background-image: url(cover.jpg); background-size: cover; background-position: top;
+             height: 10rem; border-radius: 16px; overflow: hidden; }
+    .shade { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.75rem;
+             background: #00000066; color: #ffffff; }
+    .bell  { width: 3rem; height: 3rem; }
+    .badge { position: absolute; top: 0; right: 0; z-index: 2; background: #d32f2f; color: #ffffff;
+             border-radius: 999px; padding: 0 0.4rem; font-size: 0.75rem; }
+    footer { background: #ffffff; padding: 0.5rem; gap: 2rem; box-shadow: 0 -2px 8px #00000022; }
+    .tab { background: #00000000; color: #555555; }
+    .on  { color: #1f7a5c; font-weight: bold; }
+</style>
+
+<body>
+    <header>
+        <h1>Today</h1>
+        <div class="bell">
+            <img src="icon:alert" alt="Notifications">
+            if unread > 0:
+                <p class="badge">{unread}</p>
+            end
+        </div>
+    </header>
+
+    <div class="cover">
+        <p class="shade">Weekend trip</p>
+    </div>
+
+    <footer>
+        for t in tabs:
+            if t.state == "on":
+                <button id="tab" class="tab on" key="{t.id}">{t.name}</button>
+            else:
+                <button id="tab" class="tab" key="{t.id}">{t.name}</button>
+            end
+        end
+    </footer>
+</body>
+</nativelayout>
+```
+
+- `.on` comes after `.tab` in the style, so it wins at the same weight (section 4.1).
+- The `<footer>` is fixed at the bottom and the screen scrolls above it. `dock` would move it (section 5.10).
+- `.shade` and `.badge` leave the flow: they take no space in their parent and are placed from its edges (section 4.7). The `.bell` box has a size because a box that holds only absolute children would have none.
+- `cover.jpg` is found as the `src` of an `<img>` is, through the host. If it is not found, the box stays without image.
+
+### 12.9 Bottom navigation (`footer`)
+
+*Built in the Kotlin engine.* Three tabs in a bar fixed at the bottom. The program keeps the active tab in its state and shows the content of that tab.
+
+`tabs.nl`:
+
+```html
+<nativelayout>
+<style>
+    footer { background: #ffffff; padding: 0.5rem; justify-content: space-around; }
+    .tab { background: #00000000; color: #777777; font-size: 0.8rem; }
+    .on { color: #1f7a5c; font-weight: bold; }
+</style>
+
+<body>
+    <header>
+        <h1>{title}</h1>
+    </header>
+
+    <div class="page">
+        <p>{content}</p>
+    </div>
+
+    <footer>
+        for t in tabs:
+            if t.state == "on":
+                <button class="tab on" key="{t.id}">{t.name}</button>
+            else:
+                <button class="tab" key="{t.id}">{t.name}</button>
+            end
+        end
+    </footer>
+</body>
+</nativelayout>
+```
+
+The program:
+
+```kotlin
+val TABS = listOf("home" to "Home", "search" to "Search", "profile" to "Profile")
+
+fun NativeView.MainScreen(): Page {
+    val s = state { mutableMapOf<String, Any?>("tab" to "home") }
+
+    // the tabs are in a 'for' without an id, so they are read as a class
+    if (click(".tab")) s["tab"] = TABS[clickIndex()].first
+
+    val tab = s["tab"] as String
+    return view(
+        "tabs.nl",
+        mapOf(
+            "title" to TABS.first { it.first == tab }.second,
+            "content" to "Content of the $tab tab.",
+            "tabs" to TABS.map { (id, name) ->
+                mapOf("id" to id, "name" to name, "state" to if (id == tab) "on" else "")
+            }
+        )
+    )
+}
+```
+
+- The bar takes its space at the bottom: the content scrolls above it and nothing is hidden behind it.
+- To use the same bar in several screens, write it once as `bar.nl` and put `<include src="bar.nl" ...>` inside each `<footer>` (section 5.6).
+
+### 12.10 Floating button (`footer` with `dock`)
+
+*Built in the Kotlin engine.* A round button at the bottom right, over the content, that does not take space.
+
+```html
+<nativelayout>
+<style>
+    .fab { dock: right; align-self: flex-end; width: 3.5rem; height: 3.5rem;
+           margin: 0 1rem 1rem 0; border-radius: 999px; background: #1f7a5c; color: #ffffff; }
+</style>
+
+<body>
+    <h1>Notes</h1>
+    for n in notes:
+        <p key="{n.id}">{n.text}</p>
+    end
+
+    <footer class="fab" id="add">
+        <img src="icon:plus" alt="New note">
+    </footer>
+</body>
+</nativelayout>
+```
+
+```kotlin
+if (click("add")) return go { NewNote() }
+```
+
+- With `dock: right` (or `left`, `top`, `center`) the footer floats over the screen and takes no space. `align-self` chooses the place along that edge: `flex-end` is the bottom here, and the default is the middle.
+- `margin` moves it away from the edge. `border-radius` makes it round.
+- The icon is drawn in the `color` of the footer, which it inherits.
+- Only one `<footer>` per screen. Two floating pieces at once are a `<dialog>` (section 5.4).
+
+### 12.11 Side menu (`dialog`)
+
+*Built in the Kotlin engine.* A panel that comes over the screen from the left, with the rest of the screen dimmed. It uses the `<dialog>`; nothing new is needed.
+
+```html
+<nativelayout>
+<style>
+    dialog { flex-direction: row; justify-content: flex-start; align-items: stretch; }
+    .menu { width: 18rem; background: #ffffff; padding: 1.5rem; gap: 0.5rem; }
+</style>
+
+<body>
+    <header>
+        <img id="open" src="icon:menu" alt="Menu">
+        <h1>Home</h1>
+    </header>
+
+    if open:
+        <dialog id="layer">
+            <div class="menu">
+                <button id="go-home">Home</button>
+                <button id="go-settings">Settings</button>
+            </div>
+        </dialog>
+    end
+</body>
+</nativelayout>
+```
+
+```kotlin
+if (click("open")) s.open = true
+if (click("layer") || (s.open && back())) s.open = false
+```
+
+- A tap on the dark area is a tap on the `layer` (the id of the dialog), and the system back button closes the menu while it is open (section 8.6).
+- The dialog fades in. `animation: slide-left` moves its first block a little; it is meant for sheets, and for a side menu the default fade is the safest.
+
+### 12.12 Text over an image (`position: absolute`)
+
+*Built in the Kotlin engine.* A card with a cover image, a dark band at the bottom with the title, and a label at the top corner.
+
+```html
+<nativelayout>
+<style>
+    .card  { height: 12rem; border-radius: 16px; overflow: hidden;
+             background-image: url(cover.jpg); background-size: cover; background-position: center; }
+    .tag   { position: absolute; top: 0.75rem; left: 0.75rem; padding: 0.25rem 0.6rem;
+             background: #1f7a5c; color: #ffffff; border-radius: 999px; font-size: 0.75rem; }
+    .title { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.75rem;
+             background: #00000099; color: #ffffff; font-weight: bold; }
+</style>
+
+<body>
+    <div class="card">
+        <p class="tag">New</p>
+        <p class="title">{title}</p>
+    </div>
+</body>
+</nativelayout>
+```
+
+- The box has `height` because everything inside is absolute and takes no space of its own.
+- `.title` has `left: 0` and `right: 0` and no width, so it stretches over the whole card.
+- `z-index` decides which absolute element is above another; the later one in the file wins at the same value.
+- `overflow: hidden` cuts the image and the content to the rounded corners.
+
 ---
 
 [Index](../../SPEC.md) | Previous: [Errors and targets](errors-and-targets.md) | Next: [Good practices](good-practices.md)
