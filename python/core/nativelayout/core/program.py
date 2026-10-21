@@ -1,12 +1,4 @@
-"""Lado do programa: verbos da spec (secao 8) sobre o motor.
 
-Parte do `NativeView` que nao depende da plataforma. Cada host (Kivy/android, Kivy/desktop)
-fornece o `LayoutHost`, o `loader` e o tema escuro.
-
-Dois estilos, como na spec:
-  - funcoes de ecra: `def painel(): s = state({...}); if click("add"): ...; return view("painel.nl", s)`
-  - camada base:     `while await ui.render(tela, dados): ...`
-"""
 from __future__ import annotations
 
 import asyncio
