@@ -35,7 +35,7 @@ A variable that is not declared in `:root` is an error.
 
 | Area | Properties |
 |---|---|
-| Layout | `display` (`flex` or `block`), `flex-direction`, `flex`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `gap`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `overflow`, `opacity`, `dock` (only on `<footer>`: `bottom`, `top`, `left`, `right`, `center`) |
+| Layout | `display` (`flex` or `block`), `flex-direction`, `flex`, `flex-wrap`, `justify-content`, `align-items`, `align-self`, `gap`, `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `overflow`, `opacity`, `dock` (only on `<footer>`: `bottom`, `top`, `left`, `right`, `center`), `position`, `top`, `right`, `bottom`, `left`, `z-index` (section 4.7) |
 | Box | `padding`, `margin` (and `-top`, `-right`, `-bottom`, `-left` of each), `border` (and `border-width`, `border-color`, `border-style`), `border-radius` (one to four values) and `border-top-left-radius`, `border-top-right-radius`, `border-bottom-right-radius`, `border-bottom-left-radius`, `box-shadow` |
 | Background | `color`, `background` (and `background-color`, `background-image`) with a color or a `linear-gradient` |
 | Text | `font-size`, `font-weight`, `font-style`, `font-family`, `text-align`, `text-decoration`, `text-transform`, `line-height`, `letter-spacing` |
@@ -118,6 +118,39 @@ dialog { animation: slide-up 200ms; }     /* the layer */
 - The screen animation plays when a screen is built from scratch: the first screen, and after `go`, `goRoot` or `goBack`. A normal `render` (the same screen with new data) does not animate.
 - The layer animation plays when the `<dialog>` is created, that is, when its `if` becomes true. A dialog that closes disappears at once in v1.
 - A target that cannot animate ignores the property, with a warning, never an error.
+
+### 4.7 Position, background image and image fit
+
+*Built in the Kotlin engine.*
+
+| Property | Values |
+|---|---|
+| `position` | `static` (default), `relative` (accepted, does nothing) or `absolute` |
+| `top`, `right`, `bottom`, `left` | a length (`px`, `rem`, `0`) or `auto`; only read with `position: absolute` |
+| `z-index` | a whole number, 0 by default |
+| `background-image` | `url(name)`, or `none` |
+| `background-size` | `cover` (default), `contain` or `100% 100%` |
+| `background-position` | `center` (default), `top`, `bottom`, `left` or `right` |
+| `object-fit` | on `<img>`: `contain` (default), `cover` or `fill` |
+
+`position: absolute`:
+- The element leaves the flow of its parent. It takes no space, does not count for `gap` and does not change `justify-content`.
+- It is placed from the edges of its parent box, which is always the nearest parent (`position: relative` on the parent is accepted and not needed).
+- With `left` and `right` and no `width` it stretches between them; the same with `top`, `bottom` and `height`. Without any offset it stays at the top left corner.
+- The parent keeps its size: a box that holds only absolute children has no size unless it has `width` and `height`.
+- `margin` is added to the offset. `padding` of the parent does not move the absolute children.
+- Absolute children are drawn above the elements in the flow, in the order of `z-index` and then in the order written. A negative `z-index` puts one under the flow.
+- It is ignored, with a warning, on `<header>`, `<footer>`, `<dialog>`, `<li>` and on the root of the screen. Inside a `virtual` container it is an error.
+- Percentages in `top`, `right`, `bottom` and `left` are not supported in v1.
+
+`background-image: url(name)`:
+- The name is resolved by the host, as the `src` of an `<img>` is, so the image comes from the same place. Write the name without quotes; a `data:` URI is not accepted here (its `;` would cut the declaration).
+- `cover` fills the box and cuts what does not fit; `contain` shows the whole image; `100% 100%` stretches it. `background-position` chooses the part that stays in view or the side where the image sits.
+- The image follows `border-radius`. A `background` with a color or a gradient replaces it, and `background-color` does not.
+- `background-repeat`, a size in lengths and several images are not supported.
+- An image that the host does not find is not drawn, and the color of the box stays.
+
+`object-fit` applies to `<img>` with a file or `data:` source, not to `icon:` images.
 
 ---
 
