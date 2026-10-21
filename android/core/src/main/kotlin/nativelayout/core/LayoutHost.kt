@@ -104,6 +104,66 @@ class LayoutSession(private val host: LayoutHost) {
     /** Same behaviour as before: prepare and commit on the calling thread. */
     suspend fun render(m: FilledMarkup): Boolean = commit(prepare(m))
 
+    // ---- identity inside a `for` (section 5.7)
+    private var items: Map<String, Any?> = emptyMap()
+
+    /** The items of the repetitions of the screen on show, by path (from [ExpandedScreen.items]). */
+    fun setScopeItems(map: Map<String, Any?>) { items = map }
+
+    /** The path of the repetition that holds the tapped element, or null. */
+    private fun tappedScope(): String? = lastEvent?.let { byKey[it.key]?.scope }
+
+    /**
+     * The item of the `for [name] in ...` that holds the tapped element.
+     * Throws when the tap was not inside that `for`.
+     */
+    fun clickedItem(name: String): Any? {
+        val path = tappedScope()
+            ?: throw IllegalStateException("clicked('$name'): the tapped element is not inside a 'for'")
+        val segments = path.split("/")
+        for (i in segments.indices.reversed()) {
+            if (Scopes.variableOf(segments[i]) == name) {
+                val prefix = segments.subList(0, i + 1).joinToString("/")
+                if (!items.containsKey(prefix)) break
+                return items[prefix]
+            }
+        }
+        throw IllegalStateException("clicked('$name'): the tapped element is not inside 'for $name in ...'")
+    }
+
+    /**
+     * The id of the element [id] of the repetition given by [given] (one item for each enclosing `for`, outermost
+     * first). Without items, [id] itself when it is not repeated. Throws when the items do not name a repetition.
+     */
+    fun scopedId(id: String, given: List<Any?>): String? {
+        if (given.isEmpty()) {
+            if (id in byId) return id
+            val prefix = id + Scopes.SEP
+            val sample = byId.keys.firstOrNull { it.startsWith(prefix) } ?: return null
+            val depth = sample.substring(prefix.length).split("/").size
+            val vars = sample.substring(prefix.length).split("/").joinToString(", ") { Scopes.variableOf(it) }
+            throw IllegalStateException("'$id' is repeated: give $depth item(s), one for each of: $vars")
+        }
+        val prefix = id + Scopes.SEP
+        val candidates = byId.keys.filter { it.startsWith(prefix) }
+        if (candidates.isEmpty()) return null
+        for (c in candidates) {
+            val segments = c.substring(prefix.length).split("/")
+            if (segments.size != given.size) continue
+            var ok = true
+            var path = ""
+            for (k in segments.indices) {
+                path = if (k == 0) segments[0] else path + "/" + segments[k]
+                if (!items.containsKey(path) || !Scopes.sameItem(given[k], items[path], Scopes.tokenOf(segments[k]))) {
+                    ok = false
+                    break
+                }
+            }
+            if (ok) return c
+        }
+        return null
+    }
+
     fun click(target: String): Boolean {
         val ev = lastEvent ?: return false
         val node = byKey[ev.key] ?: return false
@@ -115,7 +175,8 @@ class LayoutSession(private val host: LayoutHost) {
             clickedIndex = all.indexOfFirst { it.key == node.key }
             return true
         }
-        if (node.id == target) {
+        val nid = node.id
+        if (nid == target || (nid != null && node.scope != null && nid.substringBefore(Scopes.SEP) == target)) {
             clickedIndex = -1
             return true
         }
@@ -132,9 +193,15 @@ class LayoutSession(private val host: LayoutHost) {
         tree = null
     }
 
-    fun fieldText(id: String): String? = if (id in byId) host.fieldText(id) else null
-    fun fieldChecked(id: String): Boolean? = if (id in byId) host.fieldChecked(id) else null
-    fun setValue(id: String, text: String) { if (id in byId) host.setValue(id, text) }
+    fun fieldText(id: String, given: List<Any?> = emptyList()): String? =
+        scopedId(id, given)?.let { host.fieldText(it) }
+
+    fun fieldChecked(id: String, given: List<Any?> = emptyList()): Boolean? =
+        scopedId(id, given)?.let { host.fieldChecked(it) }
+
+    fun setValue(id: String, text: String, given: List<Any?> = emptyList()) {
+        scopedId(id, given)?.let { host.setValue(it, text) }
+    }
 
     fun save(key: String, text: String) = host.save(key, text)
     fun load(key: String): String? = host.load(key)
